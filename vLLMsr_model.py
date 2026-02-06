@@ -102,5 +102,15 @@ VLLM_MODELS = {
     **OCR_MODELS
 }
 
+# Virtual model for external clients
+BRICK_MODEL = {
+    "brick": {
+        "id": "brick",
+        "name": "Brick",
+        "type": "virtual",
+        "description": "Virtual multimodal routing model"
+    }
+}
+
 DEFAULT_MODEL = "gpt-oss-120b"
 DEFAULT_VLLM_MODEL = "MoM"
