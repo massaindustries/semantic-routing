@@ -9,7 +9,7 @@ providers:
     - name: "Qwen3-8B"
       endpoints:
         - name: "regolo"
-          endpoint: "127.0.0.1:8888"
+          endpoint: "filter-router:8000"
           protocol: "http"
           weight: 1
       model_id: "Qwen3-8B"
@@ -17,7 +17,7 @@ providers:
     - name: "gpt-oss-20b"
       endpoints:
         - name: "regolo"
-          endpoint: "127.0.0.1:8888"
+          endpoint: "filter-router:8000"
           protocol: "http"
           weight: 1
       model_id: "gpt-oss-20b"
@@ -25,7 +25,7 @@ providers:
     - name: "gpt-oss-120b"
       endpoints:
         - name: "regolo"
-          endpoint: "127.0.0.1:8888"
+          endpoint: "filter-router:8000"
           protocol: "http"
           weight: 1
       model_id: "gpt-oss-120b"
@@ -34,7 +34,7 @@ providers:
     - name: "deepseek-r1-70b"
       endpoints:
         - name: "regolo"
-          endpoint: "127.0.0.1:8888"
+          endpoint: "filter-router:8000"
           protocol: "http"
           weight: 1
       model_id: "deepseek-r1-70b"
@@ -43,7 +43,7 @@ providers:
     - name: "qwen3-coder-next"
       endpoints:
         - name: "regolo"
-          endpoint: "127.0.0.1:8888"
+          endpoint: "filter-router:8000"
           protocol: "http"
           weight: 1
       model_id: "qwen3-coder-next"
@@ -51,7 +51,7 @@ providers:
     - name: "Llama-3.3-70b-Instruct"
       endpoints:
         - name: "regolo"
-          endpoint: "127.0.0.1:8888"
+          endpoint: "filter-router:8000"
           protocol: "http"
           weight: 1
       model_id: "Llama-3.3-70b-Instruct"
@@ -59,7 +59,7 @@ providers:
     - name: "mistral-small-3.2"
       endpoints:
         - name: "regolo"
-          endpoint: "127.0.0.1:8888"
+          endpoint: "filter-router:8000"
           protocol: "http"
           weight: 1
       model_id: "mistral-small-3.2"
@@ -67,7 +67,7 @@ providers:
     - name: "gemma-3-27b-it"
       endpoints:
         - name: "regolo"
-          endpoint: "127.0.0.1:8888"
+          endpoint: "filter-router:8000"
           protocol: "http"
           weight: 1
       model_id: "gemma-3-27b-it"

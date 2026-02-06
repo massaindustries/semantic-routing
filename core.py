@@ -9,7 +9,7 @@ from vLLMsr_model import VLLM_MODELS, DEFAULT_MODEL, DEFAULT_VLLM_MODEL, BRICK_M
 
 app = FastAPI()
 
-VLLM_SR_URL = os.getenv("VLLM_SR_URL", "http://vllm-sr:8080/v1/chat/completions")
+VLLM_SR_URL = os.getenv("VLLM_SR_URL", "http://vllm-sr:8888/v1/chat/completions")
 REGOLO_API_URL = "https://api.regolo.ai/v1/chat/completions"
 REGOLO_API_KEY = os.getenv("REGOLO_API_KEY", "")
 
@@ -48,7 +48,7 @@ def filter_function(messages: list) -> dict:
 
 
 async def call_vllm_sr(messages: list) -> dict:
-    """Call vLLM Semantic Router to get routing decision with model info."""
+    """Call vLLM Semantic Router - returns final response from Regolo via routing loop."""
     headers = {"Content-Type": "application/json"}
     payload = {
         "model": DEFAULT_VLLM_MODEL,
@@ -60,7 +60,7 @@ async def call_vllm_sr(messages: list) -> dict:
             VLLM_SR_URL,
             json=payload,
             headers=headers,
-            timeout=30.0
+            timeout=60.0  # Increased timeout for routing + Regolo call
         )
         response.raise_for_status()
         result = response.json()
@@ -179,7 +179,14 @@ async def chat_completions(request: Request):
     messages = body.get("messages", [])
     requested_model = body.get("model", "")
     
-    # Only accept "brick" model
+    # Check if this is a routed request from vLLM SR (has x-selected-model header)
+    selected_model = request.headers.get("x-selected-model")
+    if selected_model:
+        # This is a routed request - go directly to Regolo with the selected model
+        llm_result = await call_regolo_llm(messages, selected_model)
+        return JSONResponse(content=mask_response(llm_result))
+    
+    # Only accept "brick" model for client requests
     if requested_model != "brick":
         return JSONResponse(
             status_code=400,
@@ -219,15 +226,8 @@ async def chat_completions(request: Request):
             {"role": "user", "content": f"Audio transcription: {audio_transcription}\n\nImage analysis: {image_result}"}
         ]
         
-        routing_decision = await call_vllm_sr(combined_messages)
-        model = routing_decision.get("routing", {}).get("selected_model", DEFAULT_MODEL)
-        llm_result = await call_regolo_llm(combined_messages, model)
-        
-        return JSONResponse(content=mask_response({
-            "routing": routing_decision,
-            "model_used": model,
-            "response": llm_result
-        }))
+        llm_result = await call_vllm_sr(combined_messages)
+        return JSONResponse(content=mask_response(llm_result))
     
     if filter_result["text"] and filter_result["audio"] and not filter_result["image"]:
         audio_transcription = ""
@@ -247,15 +247,8 @@ async def chat_completions(request: Request):
             {"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nTesto originale: {text_content}"}
         ]
         
-        routing_decision = await call_vllm_sr(combined_messages)
-        model = routing_decision.get("routing", {}).get("selected_model", DEFAULT_MODEL)
-        llm_result = await call_regolo_llm(combined_messages, model)
-        
-        return JSONResponse(content=mask_response({
-            "routing": routing_decision,
-            "model_used": model,
-            "response": llm_result
-        }))
+        llm_result = await call_vllm_sr(combined_messages)
+        return JSONResponse(content=mask_response(llm_result))
     
     # CASO 6: Text + Image + Audio
     if filter_result["text"] and filter_result["image"] and filter_result["audio"]:
@@ -281,27 +274,13 @@ async def chat_completions(request: Request):
             {"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nImmagine result: {image_result}\n\nTesto originale: {text_content}"}
         ]
         
-        routing_decision = await call_vllm_sr(combined_messages)
-        model = routing_decision.get("routing", {}).get("selected_model", DEFAULT_MODEL)
-        llm_result = await call_regolo_llm(combined_messages, model)
-        
-        return JSONResponse(content=mask_response({
-            "routing": routing_decision,
-            "model_used": model,
-            "response": llm_result
-        }))
+        llm_result = await call_vllm_sr(combined_messages)
+        return JSONResponse(content=mask_response(llm_result))
     
     # CASO 7: Text-only
     if filter_result["text"] and not filter_result["image"] and not filter_result["audio"]:
-        routing_decision = await call_vllm_sr(messages)
-        model = routing_decision.get("routing", {}).get("selected_model", DEFAULT_MODEL)
-        llm_result = await call_regolo_llm(messages, model)
-        
-        return JSONResponse(content=mask_response({
-            "routing": routing_decision,
-            "model_used": model,
-            "response": llm_result
-        }))
+        llm_result = await call_vllm_sr(messages)
+        return JSONResponse(content=mask_response(llm_result))
     
     # CASO 3: Image + Text
     if filter_result["image"] and filter_result["text"] and not filter_result["audio"]:
