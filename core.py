@@ -9,7 +9,7 @@ from vLLMsr_model import VLLM_MODELS, DEFAULT_MODEL, DEFAULT_VLLM_MODEL, BRICK_M
 
 app = FastAPI()
 
-VLLM_SR_URL = os.getenv("VLLM_SR_URL", "http://vllm-sr:8888/v1/chat/completions")
+VLLM_SR_URL = os.getenv("VLLM_SR_URL", "http://vllm-sr:8080/v1/chat/completions")
 REGOLO_API_URL = "https://api.regolo.ai/v1/chat/completions"
 REGOLO_API_KEY = os.getenv("REGOLO_API_KEY", "")
 
