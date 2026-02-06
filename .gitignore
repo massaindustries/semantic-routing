@@ -1,0 +1,7 @@
+.venv/
+.env
+use_case/
+tests/
+public/
+opencode.json
+install-docker.sh

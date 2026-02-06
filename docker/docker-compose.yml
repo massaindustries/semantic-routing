@@ -1,0 +1,34 @@
+services:
+  filter-router:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.filter
+    ports:
+      - "8000:8000"
+    environment:
+      - VLLM_SR_URL=http://vllm-sr:8888/v1/chat/completions
+      - REGOLO_API_KEY=${REGOLO_API_KEY:-}
+    depends_on:
+      - vllm-sr
+    networks:
+      - semantic_routing_net
+
+  vllm-sr:
+    image: ghcr.io/vllm-project/semantic-router/vllm-sr:latest
+    container_name: vllm-sr-container
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./config/config.yaml:/app/config.yaml:ro
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
+      - HF_HOME=/root/.cache/huggingface
+    networks:
+      - semantic_routing_net
+
+networks:
+  semantic_routing_net:
+    driver: bridge
