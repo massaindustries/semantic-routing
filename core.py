@@ -15,20 +15,30 @@ REGOLO_API_KEY = os.getenv("REGOLO_API_KEY", "")
 
 
 def filter_function(messages: list) -> dict:
+    """Analyze message structure to detect text/image/audio content."""
     has_image = False
     has_text = False
     has_audio = False
     
     for msg in messages:
         content = msg.get("content", "")
-        if isinstance(content, str):
-            content_lower = content.lower()
-            if "image" in content_lower:
-                has_image = True
-            if "text" in content_lower:
-                has_text = True
-            if "audio" in content_lower:
-                has_audio = True
+        
+        # CASO A: Content is a list (multimodal with type blocks)
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict):
+                    block_type = block.get("type", "")
+                    
+                    if block_type == "text":
+                        has_text = True
+                    elif block_type == "image_url":
+                        has_image = True
+                    elif block_type == "audio":
+                        has_audio = True
+        
+        # CASO B: Content is a string (plain text)
+        elif isinstance(content, str) and content.strip():
+            has_text = True
     
     return {
         "image": has_image,
