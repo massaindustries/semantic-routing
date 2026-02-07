@@ -293,7 +293,9 @@ async def chat_completions(request: Request):
     selected_model = request.headers.get("x-selected-model")
     if selected_model:
         # This is a routed request - go directly to Regolo with the selected model
-        llm_result = await call_regolo_llm(messages, selected_model)
+        # Normalize messages to ensure content is string format (not array)
+        normalized_messages = normalize_messages_for_vllm_sr(messages)
+        llm_result = await call_regolo_llm(normalized_messages, selected_model)
         return JSONResponse(content=mask_response(llm_result))
     
     # Only accept "brick" model for client requests
