@@ -313,8 +313,29 @@ async def chat_completions(request: Request):
             content = msg.get("content", "")
             audio_url = extract_audio_url_from_content(content)
             if audio_url:
+                # Trascrizione audio con Whisper
                 whisper_result = await call_faster_whisper(audio_url)
-                return JSONResponse(content=mask_response(whisper_result))
+                
+                # Verifica errori nella trascrizione
+                if whisper_result.get("error"):
+                    return JSONResponse(content=mask_response(whisper_result))
+                
+                # Estrai il testo dalla trascrizione
+                transcription = whisper_result.get("text", "")
+                if not transcription:
+                    # Fallback al formato choices/message/content
+                    transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                
+                if not transcription:
+                    return JSONResponse(content={
+                        "error": "Unable to transcribe audio content",
+                        "model": "brick"
+                    })
+                
+                # Invia la trascrizione a vLLM SR per routing e risposta
+                transcription_messages = [{"role": "user", "content": transcription}]
+                llm_result = await call_vllm_sr(transcription_messages)
+                return JSONResponse(content=mask_response(llm_result))
     
     # CASO 4: Image + Audio (no text)
     if filter_result["image"] and filter_result["audio"] and not filter_result["text"]:
@@ -412,7 +433,22 @@ async def chat_completions(request: Request):
             content = msg.get("content", "")
             image_url = extract_image_url_from_content(content)
             if image_url:
-                image_result = await process_image_with_fallback(image_url)
+                # Prova OCR con DeepSeek
+                ocr_result = await call_deepseek_ocr(image_url)
+
+                # Estrai il testo dall'OCR
+                ocr_text = ""
+                if ocr_result.get("choices"):
+                    ocr_text = ocr_result["choices"][0].get("message", {}).get("content", "")
+
+                # Se OCR ha successo (testo significativo trovato), invia a vLLM SR
+                if ocr_text and len(ocr_text.strip()) > 10:
+                    ocr_messages = [{"role": "user", "content": ocr_text}]
+                    llm_result = await call_vllm_sr(ocr_messages)
+                    return JSONResponse(content=mask_response(llm_result))
+
+                # Se OCR fallisce, usa Qwen3-VL per analisi visiva
+                image_result = await call_qwen3_vl(image_url)
                 return JSONResponse(content=mask_response(image_result))
     
     # Fallback
