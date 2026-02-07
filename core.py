@@ -4,8 +4,13 @@ import uvicorn
 import httpx
 import os
 import json
+import logging
 
 from vLLMsr_model import VLLM_MODELS, DEFAULT_MODEL, DEFAULT_VLLM_MODEL, BRICK_MODEL
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -70,22 +75,42 @@ def filter_function(messages: list) -> dict:
 
 async def call_vllm_sr(messages: list) -> dict:
     """Call vLLM Semantic Router - returns final response from Regolo via routing loop."""
+    logger.info(f"call_vllm_sr: Starting vLLM SR call")
+    logger.info(f"call_vllm_sr: Messages count = {len(messages)}")
+    logger.info(f"call_vllm_sr: URL = {VLLM_SR_URL}")
+    
     headers = {"Content-Type": "application/json"}
     payload = {
         "model": DEFAULT_VLLM_MODEL,
         "messages": messages
     }
     
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            VLLM_SR_URL,
-            json=payload,
-            headers=headers,
-            timeout=300.0  # 5 minutes timeout for routing + Regolo call
-        )
-        response.raise_for_status()
-        result = response.json()
-        return result
+    logger.info(f"call_vllm_sr: Payload = {json.dumps(payload, indent=2)[:300]}")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            logger.info("call_vllm_sr: Sending request to vLLM SR...")
+            response = await client.post(
+                VLLM_SR_URL,
+                json=payload,
+                headers=headers,
+                timeout=300.0  # 5 minutes timeout for routing + Regolo call
+            )
+            logger.info(f"call_vllm_sr: Response status = {response.status_code}")
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"call_vllm_sr: Response keys = {result.keys() if isinstance(result, dict) else 'Not a dict'}")
+            
+            # Check for errors in response
+            if result.get("error"):
+                logger.error(f"call_vllm_sr: Error in response = {result['error']}")
+            elif result.get("choices"):
+                logger.info(f"call_vllm_sr: Success - {len(result['choices'])} choices received")
+            
+            return result
+    except Exception as e:
+        logger.error(f"call_vllm_sr: Exception = {str(e)}")
+        return {"error": {"message": str(e), "type": "vllm_sr_error", "code": "internal_error"}}
 
 
 async def call_regolo_llm(messages: list, model: str) -> dict:
@@ -136,6 +161,9 @@ async def call_regolo_llm(messages: list, model: str) -> dict:
 
 
 async def call_faster_whisper(audio_content: str) -> dict:
+    logger.info(f"call_faster_whisper: Starting transcription")
+    logger.info(f"call_faster_whisper: Audio content length = {len(audio_content) if audio_content else 0}")
+    
     headers = {
         "Authorization": f"Bearer {REGOLO_API_KEY}",
         "Content-Type": "application/json"
@@ -145,19 +173,27 @@ async def call_faster_whisper(audio_content: str) -> dict:
         "file": audio_content or ""
     }
     
+    logger.info(f"call_faster_whisper: Using model = {payload['model']}")
+    
     try:
         async with httpx.AsyncClient() as client:
+            logger.info("call_faster_whisper: Sending request to Regolo API...")
             response = await client.post(
                 "https://api.regolo.ai/v1/audio/transcriptions",
                 json=payload,
                 headers=headers,
                 timeout=120.0
             )
+            logger.info(f"call_faster_whisper: Response status = {response.status_code}")
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            logger.info(f"call_faster_whisper: Response received, keys = {result.keys()}")
+            return result
     except httpx.ReadTimeout:
+        logger.error("call_faster_whisper: Timeout error")
         return {"error": {"message": "Whisper transcription timeout", "type": "timeout", "code": "timeout"}}
     except Exception as e:
+        logger.error(f"call_faster_whisper: Error = {str(e)}")
         return {"error": {"message": str(e), "type": "unexpected_error", "code": "internal_error"}}
 
 
@@ -289,52 +325,83 @@ async def chat_completions(request: Request):
     messages = body.get("messages", [])
     requested_model = body.get("model", "")
     
+    # Log della richiesta ricevuta
+    logger.info(f"=== RICHIESTA RICEVUTA ===")
+    logger.info(f"Model: {requested_model}")
+    logger.info(f"Messages count: {len(messages)}")
+    for i, msg in enumerate(messages):
+        content = msg.get("content", "")
+        if isinstance(content, list):
+            content_types = [c.get("type", "unknown") for c in content if isinstance(c, dict)]
+            logger.info(f"Message {i}: role={msg.get('role')}, content_types={content_types}")
+        else:
+            logger.info(f"Message {i}: role={msg.get('role')}, content_type=string")
+    
     # Check if this is a routed request from vLLM SR (has x-selected-model header)
     selected_model = request.headers.get("x-selected-model")
     if selected_model:
         # This is a routed request - go directly to Regolo with the selected model
         # Normalize messages to ensure content is string format (not array)
+        logger.info(f"Routed request from vLLM SR with model: {selected_model}")
         normalized_messages = normalize_messages_for_vllm_sr(messages)
         llm_result = await call_regolo_llm(normalized_messages, selected_model)
         return JSONResponse(content=mask_response(llm_result))
     
     # Only accept "brick" model for client requests
     if requested_model != "brick":
+        logger.warning(f"Invalid model requested: {requested_model}")
         return JSONResponse(
             status_code=400,
             content={"error": f"Model '{requested_model}' not supported. Use 'brick'."}
         )
     
     filter_result = filter_function(messages)
+    logger.info(f"Filter result: {filter_result}")
     
     # CASO 1: Audio-only
     if filter_result["audio"] and not filter_result["image"] and not filter_result["text"]:
+        logger.info("=== CASO 1: Audio-only ===")
         for msg in messages:
             content = msg.get("content", "")
             audio_url = extract_audio_url_from_content(content)
             if audio_url:
+                # Log audio URL (troncato per privacy)
+                audio_url_preview = audio_url[:50] + "..." if len(audio_url) > 50 else audio_url
+                logger.info(f"Audio URL extracted: {audio_url_preview}")
+                
                 # Trascrizione audio con Whisper
+                logger.info("Calling Whisper...")
                 whisper_result = await call_faster_whisper(audio_url)
+                logger.info(f"Whisper result keys: {whisper_result.keys()}")
+                logger.info(f"Whisper result: {json.dumps(whisper_result, indent=2)[:500]}")
                 
                 # Verifica errori nella trascrizione
                 if whisper_result.get("error"):
+                    logger.error(f"Whisper error: {whisper_result.get('error')}")
                     return JSONResponse(content=mask_response(whisper_result))
                 
                 # Estrai il testo dalla trascrizione
                 transcription = whisper_result.get("text", "")
+                logger.info(f"Transcription from 'text' field: {transcription[:100] if transcription else 'None'}")
+                
                 if not transcription:
                     # Fallback al formato choices/message/content
                     transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    logger.info(f"Transcription from 'choices' field: {transcription[:100] if transcription else 'None'}")
                 
                 if not transcription:
+                    logger.error("No transcription found in Whisper result")
                     return JSONResponse(content={
                         "error": "Unable to transcribe audio content",
                         "model": "brick"
                     })
                 
                 # Invia la trascrizione a vLLM SR per routing e risposta
+                logger.info(f"Sending transcription to vLLM SR: {transcription[:100]}...")
                 transcription_messages = [{"role": "user", "content": transcription}]
                 llm_result = await call_vllm_sr(transcription_messages)
+                logger.info(f"vLLM SR result keys: {llm_result.keys() if isinstance(llm_result, dict) else 'Not a dict'}")
+                logger.info(f"Response to frontend: {json.dumps(llm_result, indent=2)[:500]}")
                 return JSONResponse(content=mask_response(llm_result))
     
     # CASO 4: Image + Audio (no text)
