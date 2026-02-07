@@ -99,14 +99,40 @@ async def call_regolo_llm(messages: list, model: str) -> dict:
         "temperature": 0.7
     }
     
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            REGOLO_API_URL,
-            json=payload,
-            headers=headers
-        )
-        response.raise_for_status()
-        return response.json()
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                REGOLO_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=300.0  # 5 minutes timeout for large models like gpt-oss-120b
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.ReadTimeout:
+        return {
+            "error": {
+                "message": f"Request timeout for model {model}. The model is taking too long to respond.",
+                "type": "timeout",
+                "code": "timeout"
+            }
+        }
+    except httpx.HTTPStatusError as e:
+        return {
+            "error": {
+                "message": f"HTTP error {e.response.status_code}: {str(e)}",
+                "type": "http_error",
+                "code": e.response.status_code
+            }
+        }
+    except Exception as e:
+        return {
+            "error": {
+                "message": f"Unexpected error: {str(e)}",
+                "type": "unexpected_error",
+                "code": "internal_error"
+            }
+        }
 
 
 async def call_faster_whisper(audio_content: str) -> dict:
@@ -119,14 +145,20 @@ async def call_faster_whisper(audio_content: str) -> dict:
         "file": audio_content or ""
     }
     
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://api.regolo.ai/v1/audio/transcriptions",
-            json=payload,
-            headers=headers
-        )
-        response.raise_for_status()
-        return response.json()
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.regolo.ai/v1/audio/transcriptions",
+                json=payload,
+                headers=headers,
+                timeout=120.0
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.ReadTimeout:
+        return {"error": {"message": "Whisper transcription timeout", "type": "timeout", "code": "timeout"}}
+    except Exception as e:
+        return {"error": {"message": str(e), "type": "unexpected_error", "code": "internal_error"}}
 
 
 async def call_deepseek_ocr(image_content: str) -> dict:
@@ -143,14 +175,20 @@ async def call_deepseek_ocr(image_content: str) -> dict:
         ]
     }
     
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            REGOLO_API_URL,
-            json=payload,
-            headers=headers
-        )
-        response.raise_for_status()
-        return response.json()
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                REGOLO_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=120.0
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.ReadTimeout:
+        return {"error": {"message": "OCR processing timeout", "type": "timeout", "code": "timeout"}}
+    except Exception as e:
+        return {"error": {"message": str(e), "type": "unexpected_error", "code": "internal_error"}}
 
 
 async def call_qwen3_vl(image_content: str) -> dict:
@@ -167,14 +205,20 @@ async def call_qwen3_vl(image_content: str) -> dict:
         ]
     }
     
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            REGOLO_API_URL,
-            json=payload,
-            headers=headers
-        )
-        response.raise_for_status()
-        return response.json()
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                REGOLO_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=120.0
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.ReadTimeout:
+        return {"error": {"message": "Vision model timeout", "type": "timeout", "code": "timeout"}}
+    except Exception as e:
+        return {"error": {"message": str(e), "type": "unexpected_error", "code": "internal_error"}}
 
 
 async def process_image_with_fallback(image_content: str) -> dict:
