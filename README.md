@@ -60,3 +60,4 @@ curl -X POST http://localhost:8888/v1/chat/completions \
 - **Ubuntu 24.04 LTS**
 - **8 GB RAM minimum** (16 GB recommended)
 - **Docker & Docker Compose**
+

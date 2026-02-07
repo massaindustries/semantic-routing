@@ -173,6 +173,51 @@ def mask_response(response: dict) -> dict:
     return response
 
 
+def extract_text_from_content(content) -> str:
+    """Estrae il testo da content sia se stringa che se array di parts."""
+    if isinstance(content, str):
+        return content
+    elif isinstance(content, list):
+        texts = []
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                text = block.get("text", "")
+                if text:
+                    texts.append(text)
+        return " ".join(texts)
+    return ""
+
+
+def extract_image_url_from_content(content) -> str:
+    """Estrae l'URL dell'immagine da content array (formato OpenAI vision)."""
+    if isinstance(content, list):
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "image_url":
+                image_url_obj = block.get("image_url", {})
+                if isinstance(image_url_obj, dict):
+                    return image_url_obj.get("url", "")
+                elif isinstance(image_url_obj, str):
+                    return image_url_obj
+    return ""
+
+
+def extract_audio_url_from_content(content) -> str:
+    """Estrae l'URL audio da content array."""
+    if isinstance(content, list):
+        for block in content:
+            if isinstance(block, dict):
+                block_type = block.get("type", "")
+                if block_type == "audio":
+                    return block.get("audio", "") or block.get("url", "")
+                elif block_type == "input_audio":
+                    audio_url = block.get("audio_url", {})
+                    if isinstance(audio_url, dict):
+                        return audio_url.get("url", "")
+                    elif isinstance(audio_url, str):
+                        return audio_url
+    return ""
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
     body = await request.json()
@@ -199,8 +244,9 @@ async def chat_completions(request: Request):
     if filter_result["audio"] and not filter_result["image"] and not filter_result["text"]:
         for msg in messages:
             content = msg.get("content", "")
-            if isinstance(content, str) and "audio" in content.lower():
-                whisper_result = await call_faster_whisper(content)
+            audio_url = extract_audio_url_from_content(content)
+            if audio_url:
+                whisper_result = await call_faster_whisper(audio_url)
                 return JSONResponse(content=mask_response(whisper_result))
     
     # CASO 4: Image + Audio (no text)
@@ -210,13 +256,13 @@ async def chat_completions(request: Request):
         
         for msg in messages:
             content = msg.get("content", "")
-            if isinstance(content, str):
-                content_lower = content.lower()
-                if "audio" in content_lower:
-                    whisper_result = await call_faster_whisper(content)
-                    audio_transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
-                if "image" in content_lower:
-                    image_content_str = content
+            audio_url = extract_audio_url_from_content(content)
+            if audio_url:
+                whisper_result = await call_faster_whisper(audio_url)
+                audio_transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
+            image_url = extract_image_url_from_content(content)
+            if image_url:
+                image_content_str = image_url
         
         # Process image
         image_result = await process_image_with_fallback(image_content_str)
@@ -235,13 +281,13 @@ async def chat_completions(request: Request):
         
         for msg in messages:
             content = msg.get("content", "")
-            if isinstance(content, str):
-                content_lower = content.lower()
-                if "audio" in content_lower:
-                    whisper_result = await call_faster_whisper(content)
-                    audio_transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
-                if "text" in content_lower:
-                    text_content = content
+            audio_url = extract_audio_url_from_content(content)
+            if audio_url:
+                whisper_result = await call_faster_whisper(audio_url)
+                audio_transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
+            text_from_content = extract_text_from_content(content)
+            if text_from_content:
+                text_content = text_from_content
         
         combined_messages = [
             {"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nTesto originale: {text_content}"}
@@ -258,15 +304,16 @@ async def chat_completions(request: Request):
         
         for msg in messages:
             content = msg.get("content", "")
-            if isinstance(content, str):
-                content_lower = content.lower()
-                if "audio" in content_lower:
-                    whisper_result = await call_faster_whisper(content)
-                    audio_transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
-                if "image" in content_lower:
-                    image_content_str = content
-                if "text" in content_lower:
-                    text_content = content
+            audio_url = extract_audio_url_from_content(content)
+            if audio_url:
+                whisper_result = await call_faster_whisper(audio_url)
+                audio_transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
+            image_url = extract_image_url_from_content(content)
+            if image_url:
+                image_content_str = image_url
+            text_from_content = extract_text_from_content(content)
+            if text_from_content:
+                text_content = text_from_content
         
         image_result = await process_image_with_fallback(image_content_str)
         
@@ -286,16 +333,18 @@ async def chat_completions(request: Request):
     if filter_result["image"] and filter_result["text"] and not filter_result["audio"]:
         for msg in messages:
             content = msg.get("content", "")
-            if isinstance(content, str) and "image" in content.lower():
-                image_result = await call_qwen3_vl(content)
+            image_url = extract_image_url_from_content(content)
+            if image_url:
+                image_result = await call_qwen3_vl(image_url)
                 return JSONResponse(content=mask_response(image_result))
     
     # CASO 2: Image-only
     if filter_result["image"] and not filter_result["text"] and not filter_result["audio"]:
         for msg in messages:
             content = msg.get("content", "")
-            if isinstance(content, str) and "image" in content.lower():
-                image_result = await process_image_with_fallback(content)
+            image_url = extract_image_url_from_content(content)
+            if image_url:
+                image_result = await process_image_with_fallback(image_url)
                 return JSONResponse(content=mask_response(image_result))
     
     # Fallback

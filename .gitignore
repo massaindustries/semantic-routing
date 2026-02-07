@@ -5,3 +5,4 @@ tests/
 public/
 opencode.json
 install-docker.sh
+__pycache__/
