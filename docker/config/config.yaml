@@ -48,13 +48,13 @@ providers:
           weight: 1
       model_id: "qwen3-coder-next"
       
-    - name: "Llama-3.3-70b-Instruct"
+    - name: "Llama-3.3-70B-Instruct"
       endpoints:
         - name: "regolo"
           endpoint: "filter-router:8000"
           protocol: "http"
           weight: 1
-      model_id: "Llama-3.3-70b-Instruct"
+      model_id: "Llama-3.3-70B-Instruct"
       
     - name: "mistral-small-3.2"
       endpoints:
@@ -288,7 +288,7 @@ decisions:
         - type: "keyword"
           name: "creative_keywords"
     modelRefs:
-      - model: "Llama-3.3-70b-Instruct"
+      - model: "Llama-3.3-70B-Instruct"
         use_reasoning: false
     
   - name: "coding-tasks"

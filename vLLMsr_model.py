@@ -34,8 +34,8 @@ MODELS = {
         "max_tokens": 128000,
         "reasoning": False
     },
-    "Llama-3.3-70b-Instruct": {
-        "id": "Llama-3.3-70b-Instruct",
+    "Llama-3.3-70B-Instruct": {
+        "id": "Llama-3.3-70B-Instruct",
         "name": "Llama 3.3 70B Instruct",
         "type": "text",
         "description": "Modello di chat",
