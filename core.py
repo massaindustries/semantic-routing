@@ -161,34 +161,78 @@ async def call_regolo_llm(messages: list, model: str) -> dict:
 
 
 async def call_faster_whisper(audio_content: str) -> dict:
+    import base64
+    import io
+    
     logger.info(f"call_faster_whisper: Starting transcription")
     logger.info(f"call_faster_whisper: Audio content length = {len(audio_content) if audio_content else 0}")
     
+    # Estrai il contenuto base64 dal data URL
+    audio_data = audio_content
+    if audio_content.startswith("data:"):
+        # Formato: data:audio/webm;base64,...
+        parts = audio_content.split(",")
+        if len(parts) > 1:
+            audio_data = parts[1]
+            logger.info(f"call_faster_whisper: Extracted base64 from data URL")
+    
+    # Decodifica base64 in bytes
+    try:
+        audio_bytes = base64.b64decode(audio_data)
+        logger.info(f"call_faster_whisper: Decoded audio bytes = {len(audio_bytes)}")
+    except Exception as e:
+        logger.error(f"call_faster_whisper: Failed to decode base64: {str(e)}")
+        return {"error": {"message": f"Invalid base64 audio data: {str(e)}", "type": "decode_error", "code": "invalid_audio"}}
+    
+    # Headers: solo Authorization, Content-Type lo gestisce httpx per multipart
     headers = {
-        "Authorization": f"Bearer {REGOLO_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": VLLM_MODELS["faster-whisper-large-v3"]["id"],
-        "file": audio_content or ""
+        "Authorization": f"Bearer {REGOLO_API_KEY}"
     }
     
-    logger.info(f"call_faster_whisper: Using model = {payload['model']}")
+    model_id = VLLM_MODELS["faster-whisper-large-v3"]["id"]
+    logger.info(f"call_faster_whisper: Using model = {model_id}")
+    
+    # Prepara il file per multipart/form-data (come nell'esempio funzionante)
+    audio_file = io.BytesIO(audio_bytes)
+    files = {
+        "file": ("audio.webm", audio_file, "application/octet-stream")
+    }
+    data = {
+        "model": model_id
+    }
     
     try:
         async with httpx.AsyncClient() as client:
-            logger.info("call_faster_whisper: Sending request to Regolo API...")
+            logger.info("call_faster_whisper: Sending request to Regolo API (multipart/form-data)...")
             response = await client.post(
                 "https://api.regolo.ai/v1/audio/transcriptions",
-                json=payload,
+                files=files,
+                data=data,
                 headers=headers,
                 timeout=120.0
             )
             logger.info(f"call_faster_whisper: Response status = {response.status_code}")
             response.raise_for_status()
-            result = response.json()
-            logger.info(f"call_faster_whisper: Response received, keys = {result.keys()}")
-            return result
+            
+            # La risposta potrebbe essere text o JSON
+            content_type = response.headers.get("content-type", "")
+            if "application/json" in content_type:
+                result = response.json()
+                logger.info(f"call_faster_whisper: JSON response, keys = {result.keys()}")
+                return result
+            else:
+                # Risposta in formato text
+                transcript_text = response.text
+                logger.info(f"call_faster_whisper: Text response = {transcript_text[:100]}")
+                # Converte in formato OpenAI-like
+                return {
+                    "text": transcript_text,
+                    "choices": [{
+                        "message": {
+                            "content": transcript_text
+                        }
+                    }]
+                }
     except httpx.ReadTimeout:
         logger.error("call_faster_whisper: Timeout error")
         return {"error": {"message": "Whisper transcription timeout", "type": "timeout", "code": "timeout"}}
