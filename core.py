@@ -14,6 +14,27 @@ REGOLO_API_URL = "https://api.regolo.ai/v1/chat/completions"
 REGOLO_API_KEY = os.getenv("REGOLO_API_KEY", "")
 
 
+def normalize_messages_for_vllm_sr(messages: list) -> list:
+    """Normalizza i messaggi per vllm-sr convertendo content array in stringa (solo parti text)."""
+    normalized = []
+    for msg in messages:
+        content = msg.get("content", "")
+        if isinstance(content, list):
+            texts = []
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    text = block.get("text", "")
+                    if text:
+                        texts.append(text)
+            normalized.append({
+                "role": msg.get("role", "user"),
+                "content": " ".join(texts) if texts else ""
+            })
+        else:
+            normalized.append(msg)
+    return normalized
+
+
 def filter_function(messages: list) -> dict:
     """Analyze message structure to detect text/image/audio content."""
     has_image = False
@@ -60,7 +81,7 @@ async def call_vllm_sr(messages: list) -> dict:
             VLLM_SR_URL,
             json=payload,
             headers=headers,
-            timeout=60.0  # Increased timeout for routing + Regolo call
+            timeout=300.0  # 5 minutes timeout for routing + Regolo call
         )
         response.raise_for_status()
         result = response.json()
@@ -326,7 +347,8 @@ async def chat_completions(request: Request):
     
     # CASO 7: Text-only
     if filter_result["text"] and not filter_result["image"] and not filter_result["audio"]:
-        llm_result = await call_vllm_sr(messages)
+        normalized_messages = normalize_messages_for_vllm_sr(messages)
+        llm_result = await call_vllm_sr(normalized_messages)
         return JSONResponse(content=mask_response(llm_result))
     
     # CASO 3: Image + Text
