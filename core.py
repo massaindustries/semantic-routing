@@ -169,7 +169,7 @@ async def call_faster_whisper(audio_content: str) -> dict:
         "Content-Type": "application/json"
     }
     payload = {
-        "model": VLLM_MODELS["whisper-large-v3"]["id"],
+        "model": VLLM_MODELS["faster-whisper-large-v3"]["id"],
         "file": audio_content or ""
     }
     

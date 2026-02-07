@@ -69,9 +69,9 @@ MODELS = {
 }
 
 AUDIO_MODELS = {
-    "whisper-large-v3": {
-        "id": "whisper-large-v3",
-        "name": "Whisper Large V3",
+    "faster-whisper-large-v3": {
+        "id": "faster-whisper-large-v3",
+        "name": "Faster Whisper Large V3",
         "type": "stt",
         "description": "Speech-to-Text"
     }
