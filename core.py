@@ -760,7 +760,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR (routing only), then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages, is_stream)
+            vllm_result = await call_vllm_sr(normalized_messages, is_stream)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
