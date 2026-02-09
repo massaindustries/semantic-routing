@@ -750,20 +750,23 @@ async def chat_completions(request: Request):
         normalized_messages = normalize_messages_for_vllm_sr(messages)
 
         if is_stream:
-            # Stream mode: get model from vLLM SR, then stream LLM response
+            # Stream mode: get model from vLLM SR (routing only), then stream LLM response
             vllm_result = await call_vllm_sr(normalized_messages)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
             selected_model = vllm_result.get("model", "")
             if selected_model:
+                logger.info(f"Routing selected model: {selected_model}, streaming to Regolo API")
                 return StreamingResponse(
                     call_regolo_llm_stream(normalized_messages, selected_model),
                     media_type="text/event-stream"
                 )
             else:
+                logger.error("vLLM SR did not return a model")
                 return JSONResponse(content=mask_response(vllm_result))
         else:
+            # Batch mode: vLLM SR handles full routing and calls Regolo
             llm_result = await call_vllm_sr(normalized_messages)
             return JSONResponse(content=mask_response(llm_result))
     
