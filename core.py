@@ -86,7 +86,7 @@ async def call_vllm_sr(messages: list, stream: bool = False) -> dict:
         "messages": messages,
         "stream": stream
     }
-
+    
     logger.info(f"call_vllm_sr: Payload = {json.dumps(payload, indent=2)[:300]}")
     
     try:
@@ -589,7 +589,7 @@ async def chat_completions(request: Request):
                     # Stream mode: get model from vLLM SR, then stream LLM response
                     logger.info(f"Sending transcription to vLLM SR (for routing): {transcription[:100]}...")
                     transcription_messages = [{"role": "user", "content": transcription}]
-                    vllm_result = await call_vllm_sr(transcription_messages, stream=is_stream)
+                    vllm_result = await call_vllm_sr(transcription_messages, stream=True)
 
                     if vllm_result.get("error"):
                         logger.error(f"vLLM SR error: {vllm_result.get('error')}")
@@ -609,7 +609,7 @@ async def chat_completions(request: Request):
                     # Batch mode: original flow
                     logger.info(f"Sending transcription to vLLM SR: {transcription[:100]}...")
                     transcription_messages = [{"role": "user", "content": transcription}]
-                    llm_result = await call_vllm_sr(transcription_messages)
+                    llm_result = await call_vllm_sr(transcription_messages, stream=False)
                     logger.info(f"vLLM SR result keys: {llm_result.keys() if isinstance(llm_result, dict) else 'Not a dict'}")
                     logger.info(f"Response to frontend: {json.dumps(llm_result, indent=2)[:500]}")
                     return JSONResponse(content=mask_response(llm_result))
@@ -643,7 +643,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages, stream=is_stream)
+            vllm_result = await call_vllm_sr(combined_messages, stream=True)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -656,7 +656,7 @@ async def chat_completions(request: Request):
             else:
                 return JSONResponse(content=mask_response(vllm_result))
         else:
-            llm_result = await call_vllm_sr(combined_messages)
+            llm_result = await call_vllm_sr(combined_messages, stream=False)
             return JSONResponse(content=mask_response(llm_result))
     
     # CASO 5: Text + Audio
@@ -683,7 +683,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages, stream=is_stream)
+            vllm_result = await call_vllm_sr(combined_messages, stream=True)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -696,7 +696,7 @@ async def chat_completions(request: Request):
             else:
                 return JSONResponse(content=mask_response(vllm_result))
         else:
-            llm_result = await call_vllm_sr(combined_messages)
+            llm_result = await call_vllm_sr(combined_messages, stream=False)
             return JSONResponse(content=mask_response(llm_result))
     
     # CASO 6: Text + Image + Audio
@@ -731,7 +731,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages, stream=is_stream)
+            vllm_result = await call_vllm_sr(combined_messages, stream=True)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -744,7 +744,7 @@ async def chat_completions(request: Request):
             else:
                 return JSONResponse(content=mask_response(vllm_result))
         else:
-            llm_result = await call_vllm_sr(combined_messages)
+            llm_result = await call_vllm_sr(combined_messages, stream=False)
             return JSONResponse(content=mask_response(llm_result))
     
     # CASO 7: Text-only
@@ -753,7 +753,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR (routing only), then stream LLM response
-            vllm_result = await call_vllm_sr(normalized_messages, stream=is_stream)
+            vllm_result = await call_vllm_sr(normalized_messages, stream=True)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -769,7 +769,7 @@ async def chat_completions(request: Request):
                 return JSONResponse(content=mask_response(vllm_result))
         else:
             # Batch mode: vLLM SR handles full routing and calls Regolo
-            llm_result = await call_vllm_sr(normalized_messages)
+            llm_result = await call_vllm_sr(normalized_messages, stream=False)
             return JSONResponse(content=mask_response(llm_result))
     
     # CASO 3: Image + Text
@@ -807,7 +807,7 @@ async def chat_completions(request: Request):
 
                     if is_stream:
                         # Stream mode: get model from vLLM SR, then stream LLM response
-                        vllm_result = await call_vllm_sr(ocr_messages, stream=is_stream)
+                        vllm_result = await call_vllm_sr(ocr_messages, stream=True)
                         if vllm_result.get("error"):
                             return JSONResponse(content=mask_response(vllm_result))
 
@@ -820,7 +820,7 @@ async def chat_completions(request: Request):
                         else:
                             return JSONResponse(content=mask_response(vllm_result))
                     else:
-                        llm_result = await call_vllm_sr(ocr_messages)
+                        llm_result = await call_vllm_sr(ocr_messages, stream=False)
                         return JSONResponse(content=mask_response(llm_result))
 
                 # Se OCR fallisce, usa Qwen3-VL per analisi visiva
