@@ -73,13 +73,17 @@ def filter_function(messages: list) -> dict:
     }
 
 
-async def call_vllm_sr(messages: list) -> dict:
+async def call_vllm_sr(messages: list, is_stream: bool = False) -> dict:
     """Call vLLM Semantic Router - returns final response from Regolo via routing loop."""
     logger.info(f"call_vllm_sr: Starting vLLM SR call")
     logger.info(f"call_vllm_sr: Messages count = {len(messages)}")
     logger.info(f"call_vllm_sr: URL = {VLLM_SR_URL}")
+    logger.info(f"call_vllm_sr: is_stream = {is_stream}")
     
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "x-original-stream": "true" if is_stream else "false"
+    }
     payload = {
         "model": DEFAULT_VLLM_MODEL,
         "messages": messages
@@ -526,8 +530,12 @@ async def chat_completions(request: Request):
     selected_model = request.headers.get("x-selected-model")
     if selected_model:
         # This is a routed request - go directly to Regolo with the selected model
+        # Restore original stream parameter from header (vLLM SR may have modified it)
+        original_is_stream = request.headers.get("x-original-stream", "false").lower() == "true"
+        logger.info(f"Routed request from vLLM SR with model: {selected_model}, original_stream={original_is_stream}, body_stream={is_stream}")
+        # Use original stream value, not the one from body (which may have been modified by vLLM SR)
+        is_stream = original_is_stream
         # Normalize messages to ensure content is string format (not array)
-        logger.info(f"Routed request from vLLM SR with model: {selected_model}, stream={is_stream}")
         normalized_messages = normalize_messages_for_vllm_sr(messages)
 
         if is_stream:
@@ -588,7 +596,7 @@ async def chat_completions(request: Request):
                     # Stream mode: get model from vLLM SR, then stream LLM response
                     logger.info(f"Sending transcription to vLLM SR (for routing): {transcription[:100]}...")
                     transcription_messages = [{"role": "user", "content": transcription}]
-                    vllm_result = await call_vllm_sr(transcription_messages)
+                    vllm_result = await call_vllm_sr(transcription_messages, is_stream)
 
                     if vllm_result.get("error"):
                         logger.error(f"vLLM SR error: {vllm_result.get('error')}")
@@ -608,7 +616,7 @@ async def chat_completions(request: Request):
                     # Batch mode: original flow
                     logger.info(f"Sending transcription to vLLM SR: {transcription[:100]}...")
                     transcription_messages = [{"role": "user", "content": transcription}]
-                    llm_result = await call_vllm_sr(transcription_messages)
+                    llm_result = await call_vllm_sr(transcription_messages, is_stream)
                     logger.info(f"vLLM SR result keys: {llm_result.keys() if isinstance(llm_result, dict) else 'Not a dict'}")
                     logger.info(f"Response to frontend: {json.dumps(llm_result, indent=2)[:500]}")
                     return JSONResponse(content=mask_response(llm_result))
@@ -642,7 +650,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages)
+            vllm_result = await call_vllm_sr(combined_messages, is_stream)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -655,7 +663,7 @@ async def chat_completions(request: Request):
             else:
                 return JSONResponse(content=mask_response(vllm_result))
         else:
-            llm_result = await call_vllm_sr(combined_messages)
+            llm_result = await call_vllm_sr(combined_messages, is_stream)
             return JSONResponse(content=mask_response(llm_result))
     
     # CASO 5: Text + Audio
@@ -682,7 +690,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages)
+            vllm_result = await call_vllm_sr(combined_messages, is_stream)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -695,7 +703,7 @@ async def chat_completions(request: Request):
             else:
                 return JSONResponse(content=mask_response(vllm_result))
         else:
-            llm_result = await call_vllm_sr(combined_messages)
+            llm_result = await call_vllm_sr(combined_messages, is_stream)
             return JSONResponse(content=mask_response(llm_result))
     
     # CASO 6: Text + Image + Audio
@@ -730,7 +738,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages)
+            vllm_result = await call_vllm_sr(combined_messages, is_stream)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -743,7 +751,7 @@ async def chat_completions(request: Request):
             else:
                 return JSONResponse(content=mask_response(vllm_result))
         else:
-            llm_result = await call_vllm_sr(combined_messages)
+            llm_result = await call_vllm_sr(combined_messages, is_stream)
             return JSONResponse(content=mask_response(llm_result))
     
     # CASO 7: Text-only
@@ -752,7 +760,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR (routing only), then stream LLM response
-            vllm_result = await call_vllm_sr(normalized_messages)
+            vllm_result = await call_vllm_sr(combined_messages, is_stream)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -768,7 +776,7 @@ async def chat_completions(request: Request):
                 return JSONResponse(content=mask_response(vllm_result))
         else:
             # Batch mode: vLLM SR handles full routing and calls Regolo
-            llm_result = await call_vllm_sr(normalized_messages)
+            llm_result = await call_vllm_sr(normalized_messages, is_stream)
             return JSONResponse(content=mask_response(llm_result))
     
     # CASO 3: Image + Text
@@ -806,7 +814,7 @@ async def chat_completions(request: Request):
 
                     if is_stream:
                         # Stream mode: get model from vLLM SR, then stream LLM response
-                        vllm_result = await call_vllm_sr(ocr_messages)
+                        vllm_result = await call_vllm_sr(ocr_messages, is_stream)
                         if vllm_result.get("error"):
                             return JSONResponse(content=mask_response(vllm_result))
 
@@ -819,7 +827,7 @@ async def chat_completions(request: Request):
                         else:
                             return JSONResponse(content=mask_response(vllm_result))
                     else:
-                        llm_result = await call_vllm_sr(ocr_messages)
+                        llm_result = await call_vllm_sr(ocr_messages, is_stream)
                         return JSONResponse(content=mask_response(llm_result))
 
                 # Se OCR fallisce, usa Qwen3-VL per analisi visiva
