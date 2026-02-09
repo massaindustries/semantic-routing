@@ -73,18 +73,20 @@ def filter_function(messages: list) -> dict:
     }
 
 
-async def call_vllm_sr(messages: list) -> dict:
+async def call_vllm_sr(messages: list, stream: bool = False) -> dict:
     """Call vLLM Semantic Router - returns final response from Regolo via routing loop."""
     logger.info(f"call_vllm_sr: Starting vLLM SR call")
     logger.info(f"call_vllm_sr: Messages count = {len(messages)}")
     logger.info(f"call_vllm_sr: URL = {VLLM_SR_URL}")
-    
+    logger.info(f"call_vllm_sr: stream = {stream}")
+
     headers = {"Content-Type": "application/json"}
     payload = {
         "model": DEFAULT_VLLM_MODEL,
-        "messages": messages
+        "messages": messages,
+        "stream": stream
     }
-    
+
     logger.info(f"call_vllm_sr: Payload = {json.dumps(payload, indent=2)[:300]}")
     
     try:
@@ -587,7 +589,7 @@ async def chat_completions(request: Request):
                     # Stream mode: get model from vLLM SR, then stream LLM response
                     logger.info(f"Sending transcription to vLLM SR (for routing): {transcription[:100]}...")
                     transcription_messages = [{"role": "user", "content": transcription}]
-                    vllm_result = await call_vllm_sr(transcription_messages)
+                    vllm_result = await call_vllm_sr(transcription_messages, stream=is_stream)
 
                     if vllm_result.get("error"):
                         logger.error(f"vLLM SR error: {vllm_result.get('error')}")
@@ -641,7 +643,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages)
+            vllm_result = await call_vllm_sr(combined_messages, stream=is_stream)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -681,7 +683,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages)
+            vllm_result = await call_vllm_sr(combined_messages, stream=is_stream)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -729,7 +731,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages)
+            vllm_result = await call_vllm_sr(combined_messages, stream=is_stream)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -751,7 +753,7 @@ async def chat_completions(request: Request):
 
         if is_stream:
             # Stream mode: get model from vLLM SR (routing only), then stream LLM response
-            vllm_result = await call_vllm_sr(normalized_messages)
+            vllm_result = await call_vllm_sr(normalized_messages, stream=is_stream)
             if vllm_result.get("error"):
                 return JSONResponse(content=mask_response(vllm_result))
 
@@ -805,7 +807,7 @@ async def chat_completions(request: Request):
 
                     if is_stream:
                         # Stream mode: get model from vLLM SR, then stream LLM response
-                        vllm_result = await call_vllm_sr(ocr_messages)
+                        vllm_result = await call_vllm_sr(ocr_messages, stream=is_stream)
                         if vllm_result.get("error"):
                             return JSONResponse(content=mask_response(vllm_result))
 
