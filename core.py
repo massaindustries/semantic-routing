@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import uvicorn
 import httpx
 import os
@@ -111,6 +111,65 @@ async def call_vllm_sr(messages: list) -> dict:
     except Exception as e:
         logger.error(f"call_vllm_sr: Exception = {str(e)}")
         return {"error": {"message": str(e), "type": "vllm_sr_error", "code": "internal_error"}}
+
+
+async def call_regolo_llm_stream(messages: list, model: str):
+    """Stream LLM response from Regolo API using SSE format."""
+    headers = {
+        "Authorization": f"Bearer {REGOLO_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.7,
+        "stream": True
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                REGOLO_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=300.0
+            ) as response:
+                response.raise_for_status()
+                async for chunk in response.aiter_bytes():
+                    if chunk:
+                        # Decode and mask model as 'brick' in each SSE chunk
+                        try:
+                            text = chunk.decode('utf-8')
+                            if text.startswith('data:'):
+                                # Parse SSE data line
+                                data_content = text[5:].strip()
+                                if data_content == '[DONE]':
+                                    yield text
+                                else:
+                                    # Parse JSON and mask model
+                                    data = json.loads(data_content)
+                                    if 'model' in data:
+                                        data['model'] = 'brick'
+                                    # Re-encode to SSE format
+                                    yield f"data: {json.dumps(data)}\n\n"
+                            else:
+                                # Non-data lines (empty lines, etc.)
+                                yield text
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            # If can't decode/modify, pass through as-is
+                            yield chunk.decode('utf-8', errors='replace')
+                        
+    except Exception as e:
+        # Yield error as SSE event
+        error_data = {
+            "error": {
+                "message": str(e),
+                "type": "streaming_error",
+                "code": "internal_error"
+            }
+        }
+        yield f"data: {json.dumps(error_data)}\n\n"
 
 
 async def call_regolo_llm(messages: list, model: str) -> dict:
@@ -271,6 +330,68 @@ async def call_deepseek_ocr(image_content: str) -> dict:
         return {"error": {"message": str(e), "type": "unexpected_error", "code": "internal_error"}}
 
 
+async def call_qwen3_vl_stream(image_content: str):
+    """Stream Vision model response from Regolo API using SSE format."""
+    headers = {
+        "Authorization": f"Bearer {REGOLO_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": VLLM_MODELS["qwen3-vl-32b"]["id"],
+        "messages": [
+            {"role": "user", "content": [
+                {"type": "image_url", "image_url": {"url": image_content}}
+            ]}
+        ],
+        "stream": True
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                REGOLO_API_URL,
+                json=payload,
+                headers=headers,
+                timeout=120.0
+            ) as response:
+                response.raise_for_status()
+                async for chunk in response.aiter_bytes():
+                    if chunk:
+                        # Decode and mask model as 'brick' in each SSE chunk
+                        try:
+                            text = chunk.decode('utf-8')
+                            if text.startswith('data:'):
+                                # Parse SSE data line
+                                data_content = text[5:].strip()
+                                if data_content == '[DONE]':
+                                    yield text
+                                else:
+                                    # Parse JSON and mask model
+                                    data = json.loads(data_content)
+                                    if 'model' in data:
+                                        data['model'] = 'brick'
+                                    # Re-encode to SSE format
+                                    yield f"data: {json.dumps(data)}\n\n"
+                            else:
+                                # Non-data lines (empty lines, etc.)
+                                yield text
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            # If can't decode/modify, pass through as-is
+                            yield chunk.decode('utf-8', errors='replace')
+                        
+    except Exception as e:
+        # Yield error as SSE event
+        error_data = {
+            "error": {
+                "message": str(e),
+                "type": "streaming_error",
+                "code": "internal_error"
+            }
+        }
+        yield f"data: {json.dumps(error_data)}\n\n"
+
+
 async def call_qwen3_vl(image_content: str) -> dict:
     headers = {
         "Authorization": f"Bearer {REGOLO_API_KEY}",
@@ -363,15 +484,34 @@ def extract_audio_url_from_content(content) -> str:
     return ""
 
 
+def extract_transcription_from_whisper(whisper_result: dict) -> str:
+    """Estrae la trascrizione dalla risposta di Whisper, gestendo entrambi i formati."""
+    # Prima prova il campo 'text' (formato diretto)
+    transcription = whisper_result.get("text", "")
+    if transcription:
+        return transcription
+    
+    # Fallback al formato choices/message/content (formato OpenAI-like)
+    choices = whisper_result.get("choices", [])
+    if choices and len(choices) > 0:
+        message = choices[0].get("message", {})
+        content = message.get("content", "")
+        if content:
+            return content
+    
+    return ""
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
     body = await request.json()
     messages = body.get("messages", [])
     requested_model = body.get("model", "")
-    
+    is_stream = body.get("stream", False)
+
     # Log della richiesta ricevuta
     logger.info(f"=== RICHIESTA RICEVUTA ===")
-    logger.info(f"Model: {requested_model}")
+    logger.info(f"Model: {requested_model}, Stream: {is_stream}")
     logger.info(f"Messages count: {len(messages)}")
     for i, msg in enumerate(messages):
         content = msg.get("content", "")
@@ -380,16 +520,24 @@ async def chat_completions(request: Request):
             logger.info(f"Message {i}: role={msg.get('role')}, content_types={content_types}")
         else:
             logger.info(f"Message {i}: role={msg.get('role')}, content_type=string")
-    
+
     # Check if this is a routed request from vLLM SR (has x-selected-model header)
     selected_model = request.headers.get("x-selected-model")
     if selected_model:
         # This is a routed request - go directly to Regolo with the selected model
         # Normalize messages to ensure content is string format (not array)
-        logger.info(f"Routed request from vLLM SR with model: {selected_model}")
+        logger.info(f"Routed request from vLLM SR with model: {selected_model}, stream={is_stream}")
         normalized_messages = normalize_messages_for_vllm_sr(messages)
-        llm_result = await call_regolo_llm(normalized_messages, selected_model)
-        return JSONResponse(content=mask_response(llm_result))
+
+        if is_stream:
+            # Return streaming response
+            return StreamingResponse(
+                call_regolo_llm_stream(normalized_messages, selected_model),
+                media_type="text/event-stream"
+            )
+        else:
+            llm_result = await call_regolo_llm(normalized_messages, selected_model)
+            return JSONResponse(content=mask_response(llm_result))
     
     # Only accept "brick" model for client requests
     if requested_model != "brick":
@@ -412,122 +560,212 @@ async def chat_completions(request: Request):
                 # Log audio URL (troncato per privacy)
                 audio_url_preview = audio_url[:50] + "..." if len(audio_url) > 50 else audio_url
                 logger.info(f"Audio URL extracted: {audio_url_preview}")
-                
-                # Trascrizione audio con Whisper
+
+                # Trascrizione audio con Whisper (batch - no streaming)
                 logger.info("Calling Whisper...")
                 whisper_result = await call_faster_whisper(audio_url)
                 logger.info(f"Whisper result keys: {whisper_result.keys()}")
                 logger.info(f"Whisper result: {json.dumps(whisper_result, indent=2)[:500]}")
-                
+
                 # Verifica errori nella trascrizione
                 if whisper_result.get("error"):
                     logger.error(f"Whisper error: {whisper_result.get('error')}")
                     return JSONResponse(content=mask_response(whisper_result))
-                
+
                 # Estrai il testo dalla trascrizione
-                transcription = whisper_result.get("text", "")
-                logger.info(f"Transcription from 'text' field: {transcription[:100] if transcription else 'None'}")
-                
-                if not transcription:
-                    # Fallback al formato choices/message/content
-                    transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
-                    logger.info(f"Transcription from 'choices' field: {transcription[:100] if transcription else 'None'}")
-                
+                transcription = extract_transcription_from_whisper(whisper_result)
+                logger.info(f"Transcription extracted: {transcription[:100] if transcription else 'None'}")
+
                 if not transcription:
                     logger.error("No transcription found in Whisper result")
                     return JSONResponse(content={
                         "error": "Unable to transcribe audio content",
                         "model": "brick"
                     })
-                
-                # Invia la trascrizione a vLLM SR per routing e risposta
-                logger.info(f"Sending transcription to vLLM SR: {transcription[:100]}...")
-                transcription_messages = [{"role": "user", "content": transcription}]
-                llm_result = await call_vllm_sr(transcription_messages)
-                logger.info(f"vLLM SR result keys: {llm_result.keys() if isinstance(llm_result, dict) else 'Not a dict'}")
-                logger.info(f"Response to frontend: {json.dumps(llm_result, indent=2)[:500]}")
-                return JSONResponse(content=mask_response(llm_result))
+
+                if is_stream:
+                    # Stream mode: get model from vLLM SR, then stream LLM response
+                    logger.info(f"Sending transcription to vLLM SR (for routing): {transcription[:100]}...")
+                    transcription_messages = [{"role": "user", "content": transcription}]
+                    vllm_result = await call_vllm_sr(transcription_messages)
+
+                    if vllm_result.get("error"):
+                        logger.error(f"vLLM SR error: {vllm_result.get('error')}")
+                        return JSONResponse(content=mask_response(vllm_result))
+
+                    # Extract model from vLLM SR response
+                    selected_model = vllm_result.get("model", "")
+                    if selected_model:
+                        logger.info(f"vLLM SR selected model: {selected_model}")
+                        return StreamingResponse(
+                            call_regolo_llm_stream(transcription_messages, selected_model),
+                            media_type="text/event-stream"
+                        )
+                    else:
+                        return JSONResponse(content=mask_response(vllm_result))
+                else:
+                    # Batch mode: original flow
+                    logger.info(f"Sending transcription to vLLM SR: {transcription[:100]}...")
+                    transcription_messages = [{"role": "user", "content": transcription}]
+                    llm_result = await call_vllm_sr(transcription_messages)
+                    logger.info(f"vLLM SR result keys: {llm_result.keys() if isinstance(llm_result, dict) else 'Not a dict'}")
+                    logger.info(f"Response to frontend: {json.dumps(llm_result, indent=2)[:500]}")
+                    return JSONResponse(content=mask_response(llm_result))
     
     # CASO 4: Image + Audio (no text)
     if filter_result["image"] and filter_result["audio"] and not filter_result["text"]:
+        logger.info("=== CASO 4: Image + Audio ===")
         audio_transcription = ""
         image_content_str = ""
-        
+
         for msg in messages:
             content = msg.get("content", "")
             audio_url = extract_audio_url_from_content(content)
             if audio_url:
+                logger.info("Transcribing audio...")
                 whisper_result = await call_faster_whisper(audio_url)
-                audio_transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                audio_transcription = extract_transcription_from_whisper(whisper_result)
+                logger.info(f"Audio transcription: {audio_transcription[:100] if audio_transcription else 'None'}")
             image_url = extract_image_url_from_content(content)
             if image_url:
                 image_content_str = image_url
-        
+
         # Process image
+        logger.info("Processing image...")
         image_result = await process_image_with_fallback(image_content_str)
-        
+
         # Combine and route via vLLM SR
         combined_messages = [
             {"role": "user", "content": f"Audio transcription: {audio_transcription}\n\nImage analysis: {image_result}"}
         ]
-        
-        llm_result = await call_vllm_sr(combined_messages)
-        return JSONResponse(content=mask_response(llm_result))
+
+        if is_stream:
+            # Stream mode: get model from vLLM SR, then stream LLM response
+            vllm_result = await call_vllm_sr(combined_messages)
+            if vllm_result.get("error"):
+                return JSONResponse(content=mask_response(vllm_result))
+
+            selected_model = vllm_result.get("model", "")
+            if selected_model:
+                return StreamingResponse(
+                    call_regolo_llm_stream(combined_messages, selected_model),
+                    media_type="text/event-stream"
+                )
+            else:
+                return JSONResponse(content=mask_response(vllm_result))
+        else:
+            llm_result = await call_vllm_sr(combined_messages)
+            return JSONResponse(content=mask_response(llm_result))
     
+    # CASO 5: Text + Audio
     if filter_result["text"] and filter_result["audio"] and not filter_result["image"]:
+        logger.info("=== CASO 5: Text + Audio ===")
         audio_transcription = ""
         text_content = ""
-        
+
         for msg in messages:
             content = msg.get("content", "")
             audio_url = extract_audio_url_from_content(content)
             if audio_url:
+                logger.info("Transcribing audio...")
                 whisper_result = await call_faster_whisper(audio_url)
-                audio_transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                audio_transcription = extract_transcription_from_whisper(whisper_result)
+                logger.info(f"Audio transcription: {audio_transcription[:100] if audio_transcription else 'None'}")
             text_from_content = extract_text_from_content(content)
             if text_from_content:
                 text_content = text_from_content
-        
+
         combined_messages = [
             {"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nTesto originale: {text_content}"}
         ]
-        
-        llm_result = await call_vllm_sr(combined_messages)
-        return JSONResponse(content=mask_response(llm_result))
+
+        if is_stream:
+            # Stream mode: get model from vLLM SR, then stream LLM response
+            vllm_result = await call_vllm_sr(combined_messages)
+            if vllm_result.get("error"):
+                return JSONResponse(content=mask_response(vllm_result))
+
+            selected_model = vllm_result.get("model", "")
+            if selected_model:
+                return StreamingResponse(
+                    call_regolo_llm_stream(combined_messages, selected_model),
+                    media_type="text/event-stream"
+                )
+            else:
+                return JSONResponse(content=mask_response(vllm_result))
+        else:
+            llm_result = await call_vllm_sr(combined_messages)
+            return JSONResponse(content=mask_response(llm_result))
     
     # CASO 6: Text + Image + Audio
     if filter_result["text"] and filter_result["image"] and filter_result["audio"]:
+        logger.info("=== CASO 6: Text + Image + Audio ===")
         audio_transcription = ""
         image_content_str = ""
         text_content = ""
-        
+
         for msg in messages:
             content = msg.get("content", "")
             audio_url = extract_audio_url_from_content(content)
             if audio_url:
+                logger.info("Transcribing audio...")
                 whisper_result = await call_faster_whisper(audio_url)
-                audio_transcription = whisper_result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                audio_transcription = extract_transcription_from_whisper(whisper_result)
+                logger.info(f"Audio transcription: {audio_transcription[:100] if audio_transcription else 'None'}")
             image_url = extract_image_url_from_content(content)
             if image_url:
                 image_content_str = image_url
             text_from_content = extract_text_from_content(content)
             if text_from_content:
                 text_content = text_from_content
-        
+
+        # Process image
+        logger.info("Processing image...")
         image_result = await process_image_with_fallback(image_content_str)
-        
+
         combined_messages = [
             {"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nImmagine result: {image_result}\n\nTesto originale: {text_content}"}
         ]
-        
-        llm_result = await call_vllm_sr(combined_messages)
-        return JSONResponse(content=mask_response(llm_result))
+
+        if is_stream:
+            # Stream mode: get model from vLLM SR, then stream LLM response
+            vllm_result = await call_vllm_sr(combined_messages)
+            if vllm_result.get("error"):
+                return JSONResponse(content=mask_response(vllm_result))
+
+            selected_model = vllm_result.get("model", "")
+            if selected_model:
+                return StreamingResponse(
+                    call_regolo_llm_stream(combined_messages, selected_model),
+                    media_type="text/event-stream"
+                )
+            else:
+                return JSONResponse(content=mask_response(vllm_result))
+        else:
+            llm_result = await call_vllm_sr(combined_messages)
+            return JSONResponse(content=mask_response(llm_result))
     
     # CASO 7: Text-only
     if filter_result["text"] and not filter_result["image"] and not filter_result["audio"]:
         normalized_messages = normalize_messages_for_vllm_sr(messages)
-        llm_result = await call_vllm_sr(normalized_messages)
-        return JSONResponse(content=mask_response(llm_result))
+
+        if is_stream:
+            # Stream mode: get model from vLLM SR, then stream LLM response
+            vllm_result = await call_vllm_sr(normalized_messages)
+            if vllm_result.get("error"):
+                return JSONResponse(content=mask_response(vllm_result))
+
+            selected_model = vllm_result.get("model", "")
+            if selected_model:
+                return StreamingResponse(
+                    call_regolo_llm_stream(normalized_messages, selected_model),
+                    media_type="text/event-stream"
+                )
+            else:
+                return JSONResponse(content=mask_response(vllm_result))
+        else:
+            llm_result = await call_vllm_sr(normalized_messages)
+            return JSONResponse(content=mask_response(llm_result))
     
     # CASO 3: Image + Text
     if filter_result["image"] and filter_result["text"] and not filter_result["audio"]:
@@ -535,8 +773,14 @@ async def chat_completions(request: Request):
             content = msg.get("content", "")
             image_url = extract_image_url_from_content(content)
             if image_url:
-                image_result = await call_qwen3_vl(image_url)
-                return JSONResponse(content=mask_response(image_result))
+                if is_stream:
+                    return StreamingResponse(
+                        call_qwen3_vl_stream(image_url),
+                        media_type="text/event-stream"
+                    )
+                else:
+                    image_result = await call_qwen3_vl(image_url)
+                    return JSONResponse(content=mask_response(image_result))
     
     # CASO 2: Image-only
     if filter_result["image"] and not filter_result["text"] and not filter_result["audio"]:
@@ -544,7 +788,7 @@ async def chat_completions(request: Request):
             content = msg.get("content", "")
             image_url = extract_image_url_from_content(content)
             if image_url:
-                # Prova OCR con DeepSeek
+                # Prova OCR con DeepSeek (batch - no streaming)
                 ocr_result = await call_deepseek_ocr(image_url)
 
                 # Estrai il testo dall'OCR
@@ -555,12 +799,34 @@ async def chat_completions(request: Request):
                 # Se OCR ha successo (testo significativo trovato), invia a vLLM SR
                 if ocr_text and len(ocr_text.strip()) > 10:
                     ocr_messages = [{"role": "user", "content": ocr_text}]
-                    llm_result = await call_vllm_sr(ocr_messages)
-                    return JSONResponse(content=mask_response(llm_result))
+
+                    if is_stream:
+                        # Stream mode: get model from vLLM SR, then stream LLM response
+                        vllm_result = await call_vllm_sr(ocr_messages)
+                        if vllm_result.get("error"):
+                            return JSONResponse(content=mask_response(vllm_result))
+
+                        selected_model = vllm_result.get("model", "")
+                        if selected_model:
+                            return StreamingResponse(
+                                call_regolo_llm_stream(ocr_messages, selected_model),
+                                media_type="text/event-stream"
+                            )
+                        else:
+                            return JSONResponse(content=mask_response(vllm_result))
+                    else:
+                        llm_result = await call_vllm_sr(ocr_messages)
+                        return JSONResponse(content=mask_response(llm_result))
 
                 # Se OCR fallisce, usa Qwen3-VL per analisi visiva
-                image_result = await call_qwen3_vl(image_url)
-                return JSONResponse(content=mask_response(image_result))
+                if is_stream:
+                    return StreamingResponse(
+                        call_qwen3_vl_stream(image_url),
+                        media_type="text/event-stream"
+                    )
+                else:
+                    image_result = await call_qwen3_vl(image_url)
+                    return JSONResponse(content=mask_response(image_result))
     
     # Fallback
     return JSONResponse(content={
