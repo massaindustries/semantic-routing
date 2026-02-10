@@ -281,10 +281,7 @@ class ChatApp {
           this.isProcessing = true;
               // Show routing animation for every request (min 1 second enforced by hideRoutingAnimation)
               this.showRoutingAnimation();
-              // Show typing indicator for pure‑text requests (while waiting for the LLM response)
-              if (isTextRequest) {
-                  this.showTyping();
-              }
+              // No typing indicator needed; routing animation will be shown instead
               console.log('Sending request to:', API_URL);
 
               console.log('Request body:', JSON.stringify(payload));
@@ -352,7 +349,7 @@ this.hideRoutingAnimation();
              this.elements.input.value = '';
              this.attachments = [];
              this.renderAttachments();
-             this.hideTyping();
+
              this.isProcessing = false;
          }
      }
