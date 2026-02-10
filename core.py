@@ -106,7 +106,7 @@ def filter_function(messages: list) -> dict:
     }
 
 
-async def call_vllm_sr(messages: list) -> dict:
+async def call_vllm_sr(messages: list, request_id: str = None) -> dict:
     """Call vLLM Semantic Router - returns final response from Regolo via routing loop."""
     logger.info(f"call_vllm_sr: Starting vLLM SR call")
     logger.info(f"call_vllm_sr: Messages count = {len(messages)}")
@@ -135,6 +135,22 @@ async def call_vllm_sr(messages: list) -> dict:
         response.raise_for_status()
         result = response.json()
         logger.info(f"call_vllm_sr: Response keys = {result.keys() if isinstance(result, dict) else 'Not a dict'}")
+        
+        # Extract vLLM SR classification data from response headers
+        if request_id:
+            classification_data = {
+                "original_model": DEFAULT_VLLM_MODEL,
+                "selected_model": response.headers.get("x-vsr-selected-model"),
+                "decision": response.headers.get("x-vsr-selected-decision"),
+                "category": response.headers.get("x-vsr-selected-category"),
+                "reasoning": response.headers.get("x-vsr-selected-reasoning"),
+                "confidence": None,  # Not available in headers, would need parsing logs
+                "matched_rules": response.headers.get("x-vsr-matched-domains", "").split(",") if response.headers.get("x-vsr-matched-domains") else [],
+                "matched_keywords": []
+            }
+            # Log classification data and messages for dashboard
+            monitor_logger.log_vllm_classification(request_id, classification_data)
+            monitor_logger.log_request_messages(request_id, messages)
         
         # Check for errors in response
         if result.get("error"):
@@ -528,7 +544,7 @@ async def chat_completions(request: Request):
 
                     transcription_messages = [{"role": "user", "content": transcription}]
                     monitor_logger.log_phase_start(request_id, 'vllm_routing')
-                    vllm_result = await call_vllm_sr(transcription_messages)
+                    vllm_result = await call_vllm_sr(transcription_messages, request_id)
                     if vllm_result.get("error"):
                         monitor_logger.log_phase_end(request_id, 'vllm_routing', success=False)
                         monitor_logger.end_request(request_id, success=False)
@@ -567,7 +583,7 @@ async def chat_completions(request: Request):
 
             combined_messages = [{"role": "user", "content": f"Audio transcription: {audio_transcription}\n\nImage analysis: {image_result}"}]
             monitor_logger.log_phase_start(request_id, 'vllm_routing')
-            vllm_result = await call_vllm_sr(combined_messages)
+            vllm_result = await call_vllm_sr(combined_messages, request_id)
             monitor_logger.log_phase_end(request_id, 'vllm_routing')
             monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(vllm_result)))
             return JSONResponse(content=vllm_result)
@@ -590,7 +606,7 @@ async def chat_completions(request: Request):
 
             combined_messages = [{"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nTesto originale: {text_content}"}]
             monitor_logger.log_phase_start(request_id, 'vllm_routing')
-            vllm_result = await call_vllm_sr(combined_messages)
+            vllm_result = await call_vllm_sr(combined_messages, request_id)
             monitor_logger.log_phase_end(request_id, 'vllm_routing')
             monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(vllm_result)))
             return JSONResponse(content=vllm_result)
@@ -621,7 +637,7 @@ async def chat_completions(request: Request):
 
             combined_messages = [{"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nImmagine result: {image_result}\n\nTesto originale: {text_content}"}]
             monitor_logger.log_phase_start(request_id, 'vllm_routing')
-            vllm_result = await call_vllm_sr(combined_messages)
+            vllm_result = await call_vllm_sr(combined_messages, request_id)
             monitor_logger.log_phase_end(request_id, 'vllm_routing')
             monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(vllm_result)))
             return JSONResponse(content=vllm_result)
@@ -630,7 +646,7 @@ async def chat_completions(request: Request):
             logger.info("=== CASO 7: Text-only ===")
             normalized_messages = normalize_messages_for_vllm_sr(messages)
             monitor_logger.log_phase_start(request_id, 'vllm_routing')
-            vllm_result = await call_vllm_sr(normalized_messages)
+            vllm_result = await call_vllm_sr(normalized_messages, request_id)
             if vllm_result.get("error"):
                 monitor_logger.log_phase_end(request_id, 'vllm_routing', success=False)
                 monitor_logger.end_request(request_id, success=False)
@@ -678,7 +694,7 @@ async def chat_completions(request: Request):
                     if ocr_text and len(ocr_text.strip()) > 10:
                         ocr_messages = [{"role": "user", "content": ocr_text}]
                         if is_stream:
-                            vllm_result = await call_vllm_sr(ocr_messages)
+                            vllm_result = await call_vllm_sr(ocr_messages, request_id)
                             if vllm_result.get("error"):
                                 monitor_logger.log_phase_end(request_id, 'image_processing')
                                 monitor_logger.end_request(request_id, success=False)
@@ -694,7 +710,7 @@ async def chat_completions(request: Request):
                                 headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
                             )
                         else:
-                            llm_result = await call_vllm_sr(ocr_messages)
+                            llm_result = await call_vllm_sr(ocr_messages, request_id)
                             monitor_logger.log_phase_end(request_id, 'image_processing')
                             monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(llm_result)))
                             return JSONResponse(content=llm_result)

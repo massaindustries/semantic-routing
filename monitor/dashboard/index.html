@@ -50,8 +50,27 @@
         .timeline-fill { background: #28a745; height: 100%; }
         .error-detail { color: #dc3545; font-size: 0.85em; margin-top: 5px; }
         .refresh-info { font-size: 0.85em; color: #888; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         .no-data { text-align: center; padding: 40px; color: #888; }
+        
+        /* vLLM Details Styles */
+        .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .info-card { background: #0f3460; padding: 15px; border-radius: 8px; }
+        .info-card label { display: block; font-size: 0.8em; color: #888; margin-bottom: 5px; }
+        .info-card .info-value { font-size: 1.1em; font-weight: bold; color: #eee; }
+        .section { margin-top: 20px; }
+        .section h4 { color: #e94560; margin-bottom: 10px; }
+        .keyword-tag { display: inline-block; background: #2ecc71; color: white; padding: 4px 10px; border-radius: 15px; margin: 2px; font-size: 0.85em; }
+        .rule-tag { display: inline-block; background: #3498db; color: white; padding: 4px 10px; border-radius: 15px; margin: 2px; font-size: 0.85em; }
+        .message-thread { max-height: 300px; overflow-y: auto; background: #0f3460; padding: 15px; border-radius: 8px; }
+        .message-item { padding: 10px; margin: 8px 0; border-radius: 8px; }
+        .message-user { background: #1a5276; margin-left: 20px; }
+        .message-assistant { background: #1e8449; margin-right: 20px; }
+        .message-system { background: #5d6d7e; font-style: italic; }
+        .message-header { font-size: 0.8em; color: #bbb; margin-bottom: 5px; }
+        .message-content { color: #eee; word-break: break-word; }
+        .action-btn { background: #0f3460; border: 1px solid #e94560; color: #e94560; padding: 4px 12px; border-radius: 5px; cursor: pointer; font-size: 0.85em; }
+        .action-btn:hover { background: #e94560; color: white; }
     </style>
 </head>
 <body>
@@ -139,6 +158,7 @@
                             <th>Phase</th>
                             <th>Duration</th>
                             <th>Status</th>
+                            <th>Azioni</th>
                         </tr>
                     </thead>
                     <tbody id="requestsTable"></tbody>
@@ -190,6 +210,57 @@
                     <button onclick="closeModal()">X</button>
                 </div>
                 <div id="timelineContent"></div>
+            </div>
+        </div>
+
+        <div id="vllmDetailModal" class="modal hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;justify-content:center;align-items:center;z-index:1001;">
+            <div style="background:#16213e;padding:30px;border-radius:10px;max-width:900px;width:95%;max-height:90vh;overflow-y:auto;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h2 style="color:#e94560;">Dettagli vLLM SR</h2>
+                    <button onclick="closeVllmModal()">X</button>
+                </div>
+                
+                <div class="detail-grid">
+                    <div class="info-card">
+                        <label>Modello Selezionato</label>
+                        <div id="detailSelectedModel" class="info-value">-</div>
+                    </div>
+                    <div class="info-card">
+                        <label>Decision</label>
+                        <div id="detailDecision" class="info-value">-</div>
+                    </div>
+                    <div class="info-card">
+                        <label>Categoria</label>
+                        <div id="detailCategory" class="info-value">-</div>
+                    </div>
+                    <div class="info-card">
+                        <label>Confidence</label>
+                        <div id="detailConfidence" class="info-value">-</div>
+                    </div>
+                    <div class="info-card">
+                        <label>Reasoning</label>
+                        <div id="detailReasoning" class="info-value">-</div>
+                    </div>
+                    <div class="info-card">
+                        <label>Modello Originale</label>
+                        <div id="detailOriginalModel" class="info-value">-</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h4>Rules Matched</h4>
+                    <div id="detailMatchedRules" class="tags-container"></div>
+                </div>
+                
+                <div class="section">
+                    <h4>Keywords Matched</h4>
+                    <div id="detailMatchedKeywords" class="tags-container"></div>
+                </div>
+                
+                <div class="section">
+                    <h4>Messaggi</h4>
+                    <div id="detailMessages" class="message-thread"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -296,18 +367,23 @@
             }
 
             document.getElementById('requestsTable').innerHTML = filtered.slice(0, 50).map(r => `
-                <tr onclick="showTimeline('${r.request_id}')" style="cursor:pointer;">
+                <tr style="cursor:pointer;">
                     <td>${r.request_id}</td>
                     <td>${new Date(r.timestamp).toLocaleString()}</td>
                     <td><span class="phase-badge">${r.modality || '-'}</span></td>
                     <td>${r.model || '-'}</td>
                     <td>${r.phase || '-'}</td>
                     <td>${(r.duration_ms || 0).toFixed(0)}ms</td>
-                    <td><span class="status-badge ${r.success ? 'status-success' : 'status-error'}">
-                        ${r.success ? 'OK' : 'ERR'}
-                    </span></td>
+                    <td>
+                        <span class="status-badge ${r.success ? 'status-success' : 'status-error'}">
+                            ${r.success ? 'OK' : 'ERR'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="action-btn" onclick="showVllmDetails('${r.request_id}'); event.stopPropagation();">Dettagli vLLM</button>
+                    </td>
                 </tr>
-            `).join('') || '<tr><td colspan="7" class="no-data">Nessuna richiesta</td></tr>';
+            `).join('') || '<tr><td colspan="8" class="no-data">Nessuna richiesta</td></tr>';
         }
 
         function renderErrorsTable(errors) {
@@ -397,6 +473,65 @@
 
         function closeModal() {
             document.getElementById('timelineModal').classList.add('hidden');
+        }
+
+        function closeVllmModal() {
+            document.getElementById('vllmDetailModal').classList.add('hidden');
+        }
+
+        async function showVllmDetails(requestId) {
+            const details = await fetchAPI(`/requests/${requestId}/full`);
+            if (!details) {
+                alert('Dettagli non disponibili');
+                return;
+            }
+
+            const c = details.classification;
+            if (c) {
+                document.getElementById('detailSelectedModel').textContent = c.selected_model || '-';
+                document.getElementById('detailDecision').textContent = c.decision || '-';
+                document.getElementById('detailCategory').textContent = c.category || '-';
+                document.getElementById('detailConfidence').textContent = c.confidence ? c.confidence.toFixed(3) : '-';
+                document.getElementById('detailReasoning').textContent = c.reasoning || '-';
+                document.getElementById('detailOriginalModel').textContent = c.original_model || '-';
+
+                // Parse matched rules
+                const rules = Array.isArray(c.matched_rules) ? c.matched_rules : [];
+                document.getElementById('detailMatchedRules').innerHTML = rules.length ?
+                    rules.map(r => `<span class="rule-tag">${r}</span>`).join('') : '<span style="color:#888;">-</span>';
+
+                // Parse matched keywords
+                const keywords = Array.isArray(c.matched_keywords) ? c.matched_keywords : [];
+                document.getElementById('detailMatchedKeywords').innerHTML = keywords.length ?
+                    keywords.map(k => `<span class="keyword-tag">${k}</span>`).join('') : '<span style="color:#888;">-</span>';
+            } else {
+                document.getElementById('detailSelectedModel').textContent = '-';
+                document.getElementById('detailDecision').textContent = '-';
+                document.getElementById('detailCategory').textContent = '-';
+                document.getElementById('detailConfidence').textContent = '-';
+                document.getElementById('detailReasoning').textContent = '-';
+                document.getElementById('detailOriginalModel').textContent = '-';
+                document.getElementById('detailMatchedRules').innerHTML = '<span style="color:#888;">-</span>';
+                document.getElementById('detailMatchedKeywords').innerHTML = '<span style="color:#888;">-</span>';
+            }
+
+            // Render messages
+            const messages = details.messages || [];
+            document.getElementById('detailMessages').innerHTML = messages.length ?
+                messages.map(m => `
+                    <div class="message-item message-${m.role}">
+                        <div class="message-header"><strong>${m.role.toUpperCase()}</strong> ${m.content_type !== 'text' ? `[${m.content_type}]` : ''}</div>
+                        <div class="message-content">${escapeHtml(m.content || '')}</div>
+                    </div>
+                `).join('') : '<div style="color:#888;">Nessun messaggio</div>';
+
+            document.getElementById('vllmDetailModal').classList.remove('hidden');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function showTab(tabName) {
