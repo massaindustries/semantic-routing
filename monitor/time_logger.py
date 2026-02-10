@@ -17,7 +17,12 @@ PHASES = ['modality_detection', 'audio_transcription', 'image_processing',
 class TimeLogger:
     _instance = None
     
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str = None):
+        if self._initialized:
+            return
+        self._initialized = True
+        if db_path is None:
+            db_path = os.path.join(os.path.dirname(__file__), 'timelog.db')
         self.db_path = db_path
         self._local = threading.local()
         self._write_queue = queue.Queue(maxsize=10000)
