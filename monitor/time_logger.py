@@ -173,22 +173,23 @@ class TimeLogger:
                        modality: Optional[str] = None) -> Dict[str, Any]:
         conn = self._get_conn()
         
-        base_query = '''FROM time_logs WHERE timestamp >= ? AND timestamp <= ?'''
         params = []
+        where_clause = ""
         if start_date:
+            where_clause += " timestamp >= ?"
             params.append(start_date)
         else:
-            params.append('1970-01-01')
+            where_clause += " timestamp >= '1970-01-01'"
         if end_date:
+            where_clause += " AND timestamp <= ?"
             params.append(end_date)
         else:
-            params.append('2099-12-31')
+            where_clause += " AND timestamp <= '2099-12-31'"
         if modality:
-            base_query += ' AND modality = ?'
+            where_clause += " AND modality = ?"
             params.append(modality)
         
-        total_query = f'''SELECT COUNT(*) as total, SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count
-                         FROM time_logs {base_query}'''
+        total_query = f"SELECT COUNT(*) as total, SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count FROM time_logs{where_clause}"
         
         total_row = conn.execute(total_query, params).fetchone()
         total = total_row['total'] if total_row else 0
@@ -197,13 +198,23 @@ class TimeLogger:
         
         phase_stats = {}
         
+        date_params = []
+        if start_date:
+            date_params.append(start_date)
+        else:
+            date_params.append('1970-01-01')
+        if end_date:
+            date_params.append(end_date)
+        else:
+            date_params.append('2099-12-31')
+        
         for row in conn.execute('''
             SELECT phase, COUNT(*) as count, AVG(duration_ms) as avg_duration,
                    MIN(duration_ms) as min_duration, MAX(duration_ms) as max_duration
             FROM request_phases
             WHERE request_id IN (SELECT request_id FROM time_logs WHERE timestamp >= ? AND timestamp <= ?)
             GROUP BY phase
-        ''', (params[0], params[1])):
+        ''', date_params):
             phase_stats[row['phase']] = {
                 'phase': row['phase'],
                 'count': row['count'],
