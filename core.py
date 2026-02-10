@@ -182,7 +182,11 @@ async def call_regolo_llm_stream(messages: list, model: str):
             r.raise_for_status()
             async for b in r.aiter_bytes():
                 if b:
-                    yield b
+                    text = b.decode('utf-8', errors='replace')
+                    for line in text.split('\n'):
+                        line = line.strip()
+                        if line and not line.startswith(':'):
+                            yield f"data: {line}\n\n".encode('utf-8')
     except asyncio.CancelledError:
         return
     except Exception as e:
@@ -346,7 +350,11 @@ async def call_qwen3_vl_stream(image_content: str):
             r.raise_for_status()
             async for b in r.aiter_bytes():
                 if b:
-                    yield b
+                    text = b.decode('utf-8', errors='replace')
+                    for line in text.split('\n'):
+                        line = line.strip()
+                        if line and not line.startswith(':'):
+                            yield f"data: {line}\n\n".encode('utf-8')
     except asyncio.CancelledError:
         return
     except Exception as e:
