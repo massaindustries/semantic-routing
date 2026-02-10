@@ -239,13 +239,15 @@
         function calculateSuccessRate(stats) {
             if (!stats.phases) return 0;
             const total = stats.phases.find(p => p.phase === 'total_request');
-            return total ? (total.success_rate || 0).toFixed(1) : 0;
+            return total && total.success_rate !== undefined ? total.success_rate.toFixed(1) : '100.0';
         }
 
         function countErrors(stats) {
             if (!stats.phases) return 0;
-            const errors = stats.phases.find(p => p.phase === 'total_request');
-            return errors ? (errors.count - Math.round(errors.count * errors.success_rate / 100)) : 0;
+            const total = stats.phases.find(p => p.phase === 'total_request');
+            if (!total || !total.count) return 0;
+            const successRate = total.success_rate !== undefined ? total.success_rate : 100;
+            return Math.round(total.count * (100 - successRate) / 100);
         }
 
         function renderPhaseCharts(stats) {

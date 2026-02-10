@@ -8,31 +8,7 @@ import json
 import os
 import threading
 
-from .time_logger import TimeLogger, PHASES
-
-logger = None
-background_task = None
-
-def get_logger():
-    global logger
-    if logger is None:
-        logger = TimeLogger(os.path.join(monitor_dir, 'timelog.db'))
-    return logger
-
-def init():
-    global logger, background_task
-    logger = TimeLogger(os.path.join(monitor_dir, 'timelog.db'))
-    background_task = threading.Thread(target=_cleanup_loop, daemon=True)
-    background_task.start()
-
-def _cleanup_loop():
-    import time
-    while True:
-        try:
-            get_logger().clear_old_logs(days=30)
-        except Exception:
-            pass
-        time.sleep(3600)
+from .time_logger import get_logger, PHASES
 
 monitor_dir = os.path.dirname(os.path.abspath(__file__))
 dashboard_dir = os.path.join(monitor_dir, 'dashboard')

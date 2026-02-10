@@ -14,16 +14,25 @@ logger = logging.getLogger(__name__)
 PHASES = ['modality_detection', 'audio_transcription', 'image_processing', 
           'vllm_routing', 'regolo_response', 'total_request']
 
+_time_logger_instance = None
+_time_logger_lock = threading.Lock()
+
+def get_logger(db_path: str = None) -> 'TimeLogger':
+    global _time_logger_instance
+    if _time_logger_instance is None:
+        with _time_logger_lock:
+            if _time_logger_instance is None:
+                _time_logger_instance = TimeLogger(db_path)
+    return _time_logger_instance
+
+def init_logger(db_path: str = None) -> 'TimeLogger':
+    global _time_logger_instance
+    _time_logger_instance = TimeLogger(db_path)
+    return _time_logger_instance
+
 class TimeLogger:
-    _instance = None
-    
     def __init__(self, db_path: str = None):
-        if hasattr(self, '_initialized') and self._initialized:
-            return
-        self._initialized = True
-        if db_path is None:
-            db_path = os.path.join(os.path.dirname(__file__), 'timelog.db')
-        self.db_path = db_path
+        self.db_path = db_path or os.path.join(os.path.dirname(__file__), 'timelog.db')
         self._local = threading.local()
         self._write_queue = queue.Queue(maxsize=10000)
         self._worker_thread = threading.Thread(target=self._background_writer, daemon=True)
@@ -74,18 +83,16 @@ class TimeLogger:
                     (data['duration_ms'], data['success'], data.get('error_type'),
                      data.get('error_message'), data.get('response_size_bytes'), data['request_id']))
             elif data['type'] == 'update_metadata':
-                conn.execute('UPDATE time_logs SET modality = ? WHERE request_id = ?',
-                    (data['modality'], data['request_id']))
+                if data.get('modality'):
+                    conn.execute('UPDATE time_logs SET modality = ? WHERE request_id = ?',
+                        (data['modality'], data['request_id']))
             conn.commit()
         except Exception:
             pass
     
-    def _queue_write(self, data: dict, blocking: bool = False):
+    def _queue_write(self, data: dict):
         try:
-            if blocking:
-                self._execute_write(data)
-            else:
-                self._write_queue.put_nowait(data)
+            self._write_queue.put_nowait(data)
         except queue.Full:
             pass
     
@@ -165,34 +172,57 @@ class TimeLogger:
     def get_statistics(self, start_date: Optional[str] = None, end_date: Optional[str] = None,
                        modality: Optional[str] = None) -> Dict[str, Any]:
         conn = self._get_conn()
-        query = '''SELECT phase, COUNT(*) as count, AVG(duration_ms) as avg_duration,
-                   MIN(duration_ms) as min_duration, MAX(duration_ms) as max_duration
-                   FROM time_logs WHERE phase IS NOT NULL'''
+        
+        base_query = '''FROM time_logs WHERE timestamp >= ? AND timestamp <= ?'''
         params = []
         if start_date:
-            query += ' AND timestamp >= ?'
             params.append(start_date)
+        else:
+            params.append('1970-01-01')
         if end_date:
-            query += ' AND timestamp <= ?'
             params.append(end_date)
+        else:
+            params.append('2099-12-31')
         if modality:
-            query += ' AND modality = ?'
+            base_query += ' AND modality = ?'
             params.append(modality)
-        query += ' GROUP BY phase'
         
-        phases = []
-        for row in conn.execute(query, params):
-            phases.append({
+        total_query = f'''SELECT COUNT(*) as total, SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count
+                         FROM time_logs {base_query}'''
+        
+        total_row = conn.execute(total_query, params).fetchone()
+        total = total_row['total'] if total_row else 0
+        success_count = total_row['success_count'] if total_row else 0
+        success_rate = (success_count / total * 100) if total > 0 else 0
+        
+        phase_stats = {}
+        
+        for row in conn.execute('''
+            SELECT phase, COUNT(*) as count, AVG(duration_ms) as avg_duration,
+                   MIN(duration_ms) as min_duration, MAX(duration_ms) as max_duration
+            FROM request_phases
+            WHERE request_id IN (SELECT request_id FROM time_logs WHERE timestamp >= ? AND timestamp <= ?)
+            GROUP BY phase
+        ''', (params[0], params[1])):
+            phase_stats[row['phase']] = {
                 'phase': row['phase'],
                 'count': row['count'],
                 'avg_duration_ms': round(row['avg_duration'], 2) if row['avg_duration'] else 0,
                 'min_duration_ms': round(row['min_duration'], 2) if row['min_duration'] else 0,
                 'max_duration_ms': round(row['max_duration'], 2) if row['max_duration'] else 0
-            })
+            }
         
-        total = conn.execute('''SELECT COUNT(*) FROM time_logs WHERE phase = ?''', 
-                            ('total_request',)).fetchone()
-        return {'phases': phases, 'total_requests': total[0] if total else 0}
+        if total > 0:
+            phase_stats['total_request'] = {
+                'phase': 'total_request',
+                'count': total,
+                'avg_duration_ms': 0,
+                'min_duration_ms': 0,
+                'max_duration_ms': 0,
+                'success_rate': round(success_rate, 1)
+            }
+        
+        return {'phases': list(phase_stats.values()), 'total_requests': total}
     
     def get_recent_requests(self, limit: int = 50) -> List[Dict]:
         conn = self._get_conn()
@@ -211,8 +241,8 @@ class TimeLogger:
     
     def get_modality_distribution(self) -> Dict[str, int]:
         conn = self._get_conn()
-        cursor = conn.execute('''SELECT modality, COUNT(*) as count FROM time_logs GROUP BY modality''')
-        return {row['modality']: row['count'] for row in cursor.fetchall()}
+        cursor = conn.execute('''SELECT modality, COUNT(*) as count FROM time_logs WHERE modality IS NOT NULL AND modality != '' GROUP BY modality''')
+        return {row['modality']: row['count'] for row in cursor.fetchall() if row['modality']}
     
     def get_model_distribution(self) -> Dict[str, int]:
         conn = self._get_conn()
@@ -254,18 +284,3 @@ class TimeLogger:
         conn = self._get_conn()
         conn.execute('DELETE FROM time_logs WHERE timestamp < datetime("now", ?)', (f'-{days} days',))
         conn.commit()
-
-_instance = None
-
-def get_logger(db_path: str = None) -> 'TimeLogger':
-    global _instance
-    if _instance is None:
-        db = db_path or os.path.join(os.path.dirname(__file__), 'timelog.db')
-        _instance = TimeLogger(db)
-    return _instance
-
-def init_logger(db_path: str = None):
-    global _instance
-    db = db_path or os.path.join(os.path.dirname(__file__), 'timelog.db')
-    _instance = TimeLogger(db)
-    return _instance
