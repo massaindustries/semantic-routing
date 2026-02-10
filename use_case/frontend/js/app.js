@@ -321,7 +321,7 @@ if (payload.stream && response.body) {
 
 if (result.choices && result.choices.length > 0) {
                       // Hide routing animation (ensuring the minimum display time of 1 s)
-                      this.hideRoutingAnimation();
+this.hideRoutingAnimation(true);
                       const brickContent = result.choices[0].message.content;
                       console.log('Brick content length:', brickContent?.length);
                       const responseModality = this.detectModality(payload.messages[0].content);
@@ -747,7 +747,16 @@ this.hideRoutingAnimation();
         animateModels();
     }
 
-    hideRoutingAnimation() {
+    hideRoutingAnimation(force = false) {
+        if (force) {
+            // Immediate removal, ignore minimum display time
+            this.routingAnimationActive = false;
+            if (this.routingMessageElement) {
+                this.routingMessageElement.remove();
+                this.routingMessageElement = null;
+            }
+            return;
+        }
         const elapsed = Date.now() - this.routingAnimationStartTime;
         const remaining = Math.max(0, this.minRoutingAnimationDuration - elapsed);
 
