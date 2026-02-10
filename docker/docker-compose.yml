@@ -12,6 +12,8 @@ services:
       - vllm-sr
     networks:
       - semantic_routing_net
+    volumes:
+      - monitor_data:/app/monitor
 
   vllm-sr:
     image: ghcr.io/vllm-project/semantic-router/vllm-sr:latest
@@ -29,6 +31,22 @@ services:
     networks:
       - semantic_routing_net
 
+  monitor:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.monitor
+    ports:
+      - "8001:8001"
+    networks:
+      - semantic_routing_net
+    volumes:
+      - monitor_data:/app/monitor
+    depends_on:
+      - filter-router
+
 networks:
   semantic_routing_net:
     driver: bridge
+
+volumes:
+  monitor_data:

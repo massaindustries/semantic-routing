@@ -6,12 +6,16 @@ import os
 import json
 import logging
 import asyncio
+import time
+import uuid
 
 from vLLMsr_model import VLLM_MODELS, DEFAULT_MODEL, DEFAULT_VLLM_MODEL, BRICK_MODEL
+from monitor.time_logger import TimeLogger
 
-# Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+monitor_logger = TimeLogger(os.path.join(os.path.dirname(__file__), 'monitor', 'timelog.db'))
 
 # Global clients for connection reuse (initialized in startup event)
 vllm_client: httpx.AsyncClient | None = None
@@ -437,390 +441,286 @@ def extract_transcription_from_whisper(whisper_result: dict) -> str:
     return ""
 
 
+def determine_modality(filter_result: dict) -> str:
+    """Converte il risultato del filtro in stringa di modalità."""
+    mods = []
+    if filter_result.get("text"):
+        mods.append("text")
+    if filter_result.get("image"):
+        mods.append("image")
+    if filter_result.get("audio"):
+        mods.append("audio")
+    return "+".join(mods) if mods else "unknown"
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
-    body = await request.json()
-    messages = body.get("messages", [])
-    requested_model = body.get("model", "")
-    is_stream = body.get("stream", False)
+    request_id = None
+    try:
+        body = await request.json()
+        messages = body.get("messages", [])
+        requested_model = body.get("model", "")
+        is_stream = body.get("stream", False)
+        request_size = len(json.dumps(body))
 
-    # Log della richiesta ricevuta
-    logger.info(f"=== RICHIESTA RICEVUTA ===")
-    logger.info(f"Model: {requested_model}, Stream: {is_stream}")
-    logger.info(f"Messages count: {len(messages)}")
-    for i, msg in enumerate(messages):
-        content = msg.get("content", "")
-        if isinstance(content, list):
-            content_types = [c.get("type", "unknown") for c in content if isinstance(c, dict)]
-            logger.info(f"Message {i}: role={msg.get('role')}, content_types={content_types}")
-        else:
-            logger.info(f"Message {i}: role={msg.get('role')}, content_type=string")
-
-    # Check if this is a routed request from vLLM SR (has x-selected-model header)
-    selected_model = request.headers.get("x-selected-model")
-    if selected_model:
-        logger.warning("Unexpected x-selected-model header in Mode A; check vLLM-SR config")
-        # This is a routed request - go directly to Regolo with the selected model
-        # Restore original stream parameter from header (vLLM SR may have modified it)
-        original_is_stream = request.headers.get("x-original-stream", "false").lower() == "true"
-        logger.info(f"Routed request from vLLM SR with model: {selected_model}, original_stream={original_is_stream}, body_stream={is_stream}")
-        # Use original stream value, not the one from body (which may have been modified by vLLM SR)
-        is_stream = original_is_stream
-        # Normalize messages to ensure content is string format (not array)
-        normalized_messages = normalize_messages_for_vllm_sr(messages)
-
-        if is_stream:
-            # Return streaming response
-            return StreamingResponse(
-                call_regolo_llm_stream(normalized_messages, selected_model),
-                media_type="text/event-stream",
-                headers={
-                    "Cache-Control": "no-cache",
-                    "Connection": "keep-alive",
-                    "X-Accel-Buffering": "no",
-                }
-            )
-        else:
-            llm_result = await call_regolo_llm(normalized_messages, selected_model)
-            return JSONResponse(content=llm_result)
-    
-    # Only accept "brick" model for client requests
-    if requested_model != "brick":
-        logger.warning(f"Invalid model requested: {requested_model}")
-        return JSONResponse(
-            status_code=400,
-            content={"error": f"Model '{requested_model}' not supported. Use 'brick'."}
+        request_id = monitor_logger.start_request(
+            request_id=f"req_{int(time.time())}_{uuid.uuid4().hex[:6]}",
+            modality='unknown',
+            model=requested_model,
+            stream=is_stream,
+            request_size_bytes=request_size
         )
-    
-    filter_result = filter_function(messages)
-    logger.info(f"Filter result: {filter_result}")
-    
-    # CASO 1: Audio-only
-    if filter_result["audio"] and not filter_result["image"] and not filter_result["text"]:
-        logger.info("=== CASO 1: Audio-only ===")
-        for msg in messages:
-            content = msg.get("content", "")
-            audio_url = extract_audio_url_from_content(content)
-            if audio_url:
-                # Log audio URL (troncato per privacy)
-                audio_url_preview = audio_url[:50] + "..." if len(audio_url) > 50 else audio_url
-                logger.info(f"Audio URL extracted: {audio_url_preview}")
 
-                # Trascrizione audio con Whisper (batch - no streaming)
-                logger.info("Calling Whisper...")
-                whisper_result = await call_faster_whisper(audio_url)
-                logger.info(f"Whisper result keys: {whisper_result.keys()}")
-                logger.info(f"Whisper result: {json.dumps(whisper_result, indent=2)[:500]}")
+        logger.info(f"=== RICHIESTA RICEVUTA === Request ID: {request_id}")
+        logger.info(f"Model: {requested_model}, Stream: {is_stream}")
 
-                # Verifica errori nella trascrizione
-                if whisper_result.get("error"):
-                    logger.error(f"Whisper error: {whisper_result.get('error')}")
-                    return JSONResponse(content=whisper_result)
+        monitor_logger.log_phase_start(request_id, 'modality_detection')
+        filter_result = filter_function(messages)
+        modality = determine_modality(filter_result)
+        monitor_logger.update_metadata(request_id, modality=modality)
+        monitor_logger.log_phase_end(request_id, 'modality_detection')
+        logger.info(f"Filter result: {filter_result}, Modality: {modality}")
 
-                # Estrai il testo dalla trascrizione
-                transcription = extract_transcription_from_whisper(whisper_result)
-                logger.info(f"Transcription extracted: {transcription[:100] if transcription else 'None'}")
+        selected_model = request.headers.get("x-selected-model")
+        if selected_model:
+            logger.warning("Unexpected x-selected-model header in Mode A")
+            original_is_stream = request.headers.get("x-original-stream", "false").lower() == "true"
+            is_stream = original_is_stream
+            normalized_messages = normalize_messages_for_vllm_sr(messages)
 
-                if not transcription:
-                    logger.error("No transcription found in Whisper result")
-                    return JSONResponse(content={
-                        "error": "Unable to transcribe audio content",
-                        "model": "brick"
-                    })
-
-                if is_stream:
-                    # Stream mode: get model from vLLM SR, then stream LLM response
-                    logger.info(f"Sending transcription to vLLM SR (for routing): {transcription[:100]}...")
-                    transcription_messages = [{"role": "user", "content": transcription}]
-                    vllm_result = await call_vllm_sr(transcription_messages)
-
-                    if vllm_result.get("error"):
-                        logger.error(f"vLLM SR error: {vllm_result.get('error')}")
-                        return JSONResponse(content=vllm_result)
-
-                    # Extract model from vLLM SR response
-                    selected_model = vllm_result.get("model", "")
-                    if selected_model:
-                        logger.info(f"vLLM SR selected model: {selected_model}")
-                        return StreamingResponse(
-                            call_regolo_llm_stream(transcription_messages, selected_model),
-                            media_type="text/event-stream",
-                            headers={
-                                "Cache-Control": "no-cache",
-                                "Connection": "keep-alive",
-                                "X-Accel-Buffering": "no",
-                            }
-                        )
-                    else:
-                        return JSONResponse(content=vllm_result)
-                else:
-                    # Batch mode: original flow
-                    logger.info(f"Sending transcription to vLLM SR: {transcription[:100]}...")
-                    transcription_messages = [{"role": "user", "content": transcription}]
-                    llm_result = await call_vllm_sr(transcription_messages)
-                    logger.info(f"vLLM SR result keys: {llm_result.keys() if isinstance(llm_result, dict) else 'Not a dict'}")
-                    logger.info(f"Response to frontend: {json.dumps(llm_result, indent=2)[:500]}")
-                    return JSONResponse(content=llm_result)
-    
-    # CASO 4: Image + Audio (no text)
-    if filter_result["image"] and filter_result["audio"] and not filter_result["text"]:
-        logger.info("=== CASO 4: Image + Audio ===")
-        audio_transcription = ""
-        image_content_str = ""
-
-        for msg in messages:
-            content = msg.get("content", "")
-            audio_url = extract_audio_url_from_content(content)
-            if audio_url:
-                logger.info("Transcribing audio...")
-                whisper_result = await call_faster_whisper(audio_url)
-                audio_transcription = extract_transcription_from_whisper(whisper_result)
-                logger.info(f"Audio transcription: {audio_transcription[:100] if audio_transcription else 'None'}")
-            image_url = extract_image_url_from_content(content)
-            if image_url:
-                image_content_str = image_url
-
-        # Process image
-        logger.info("Processing image...")
-        image_result = await process_image_with_fallback(image_content_str)
-
-        # Combine and route via vLLM SR
-        combined_messages = [
-            {"role": "user", "content": f"Audio transcription: {audio_transcription}\n\nImage analysis: {image_result}"}
-        ]
-
-        if is_stream:
-            # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages)
-            if vllm_result.get("error"):
-                return JSONResponse(content=vllm_result)
-
-            selected_model = vllm_result.get("model", "")
-            if selected_model:
-                return StreamingResponse(
-                    call_regolo_llm_stream(combined_messages, selected_model),
-                    media_type="text/event-stream",
-                    headers={
-                        "Cache-Control": "no-cache",
-                        "Connection": "keep-alive",
-                        "X-Accel-Buffering": "no",
-                    }
-                )
-            else:
-                return JSONResponse(content=vllm_result)
-        else:
-            llm_result = await call_vllm_sr(combined_messages)
-            return JSONResponse(content=llm_result)
-    
-    # CASO 5: Text + Audio
-    if filter_result["text"] and filter_result["audio"] and not filter_result["image"]:
-        logger.info("=== CASO 5: Text + Audio ===")
-        audio_transcription = ""
-        text_content = ""
-
-        for msg in messages:
-            content = msg.get("content", "")
-            audio_url = extract_audio_url_from_content(content)
-            if audio_url:
-                logger.info("Transcribing audio...")
-                whisper_result = await call_faster_whisper(audio_url)
-                audio_transcription = extract_transcription_from_whisper(whisper_result)
-                logger.info(f"Audio transcription: {audio_transcription[:100] if audio_transcription else 'None'}")
-            text_from_content = extract_text_from_content(content)
-            if text_from_content:
-                text_content = text_from_content
-
-        combined_messages = [
-            {"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nTesto originale: {text_content}"}
-        ]
-
-        if is_stream:
-            # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages)
-            if vllm_result.get("error"):
-                return JSONResponse(content=vllm_result)
-
-            selected_model = vllm_result.get("model", "")
-            if selected_model:
-                return StreamingResponse(
-                    call_regolo_llm_stream(combined_messages, selected_model),
-                    media_type="text/event-stream",
-                    headers={
-                        "Cache-Control": "no-cache",
-                        "Connection": "keep-alive",
-                        "X-Accel-Buffering": "no",
-                    }
-                )
-            else:
-                return JSONResponse(content=vllm_result)
-        else:
-            llm_result = await call_vllm_sr(combined_messages)
-            return JSONResponse(content=llm_result)
-    
-    # CASO 6: Text + Image + Audio
-    if filter_result["text"] and filter_result["image"] and filter_result["audio"]:
-        logger.info("=== CASO 6: Text + Image + Audio ===")
-        audio_transcription = ""
-        image_content_str = ""
-        text_content = ""
-
-        for msg in messages:
-            content = msg.get("content", "")
-            audio_url = extract_audio_url_from_content(content)
-            if audio_url:
-                logger.info("Transcribing audio...")
-                whisper_result = await call_faster_whisper(audio_url)
-                audio_transcription = extract_transcription_from_whisper(whisper_result)
-                logger.info(f"Audio transcription: {audio_transcription[:100] if audio_transcription else 'None'}")
-            image_url = extract_image_url_from_content(content)
-            if image_url:
-                image_content_str = image_url
-            text_from_content = extract_text_from_content(content)
-            if text_from_content:
-                text_content = text_from_content
-
-        # Process image
-        logger.info("Processing image...")
-        image_result = await process_image_with_fallback(image_content_str)
-
-        combined_messages = [
-            {"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nImmagine result: {image_result}\n\nTesto originale: {text_content}"}
-        ]
-
-        if is_stream:
-            # Stream mode: get model from vLLM SR, then stream LLM response
-            vllm_result = await call_vllm_sr(combined_messages)
-            if vllm_result.get("error"):
-                return JSONResponse(content=vllm_result)
-
-            selected_model = vllm_result.get("model", "")
-            if selected_model:
-                return StreamingResponse(
-                    call_regolo_llm_stream(combined_messages, selected_model),
-                    media_type="text/event-stream",
-                    headers={
-                        "Cache-Control": "no-cache",
-                        "Connection": "keep-alive",
-                        "X-Accel-Buffering": "no",
-                    }
-                )
-            else:
-                return JSONResponse(content=vllm_result)
-        else:
-            llm_result = await call_vllm_sr(combined_messages)
-            return JSONResponse(content=llm_result)
-    
-    # CASO 7: Text-only
-    if filter_result["text"] and not filter_result["image"] and not filter_result["audio"]:
-        normalized_messages = normalize_messages_for_vllm_sr(messages)
-
-        if is_stream:
-            # Stream mode: get model from vLLM SR (routing only), then stream LLM response
-            vllm_result = await call_vllm_sr(normalized_messages)
-            if vllm_result.get("error"):
-                return JSONResponse(content=vllm_result)
-
-            selected_model = vllm_result.get("model", "")
-            if selected_model:
-                logger.info(f"Routing selected model: {selected_model}, streaming to Regolo API")
+            monitor_logger.log_phase_start(request_id, 'regolo_response')
+            if is_stream:
+                monitor_logger.log_phase_end(request_id, 'regolo_response')
+                monitor_logger.end_request(request_id, success=True)
                 return StreamingResponse(
                     call_regolo_llm_stream(normalized_messages, selected_model),
                     media_type="text/event-stream",
-                    headers={
-                        "Cache-Control": "no-cache",
-                        "Connection": "keep-alive",
-                        "X-Accel-Buffering": "no",
-                    }
+                    headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
                 )
             else:
-                logger.error("vLLM SR did not return a model")
-                return JSONResponse(content=vllm_result)
-        else:
-            # Batch mode: vLLM SR handles full routing and calls Regolo
-            llm_result = await call_vllm_sr(normalized_messages)
-            return JSONResponse(content=llm_result)
-    
-    # CASO 3: Image + Text
-    if filter_result["image"] and filter_result["text"] and not filter_result["audio"]:
-        for msg in messages:
-            content = msg.get("content", "")
-            image_url = extract_image_url_from_content(content)
-            if image_url:
-                if is_stream:
+                llm_result = await call_regolo_llm(normalized_messages, selected_model)
+                monitor_logger.log_phase_end(request_id, 'regolo_response')
+                monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(llm_result)))
+                return JSONResponse(content=llm_result)
+
+        if requested_model != "brick":
+            monitor_logger.end_request(request_id, success=False, error_type="invalid_model", error_message=f"Model '{requested_model}' not supported")
+            return JSONResponse(status_code=400, content={"error": f"Model '{requested_model}' not supported. Use 'brick'."})
+
+        if filter_result["audio"] and not filter_result["image"] and not filter_result["text"]:
+            logger.info("=== CASO 1: Audio-only ===")
+            for msg in messages:
+                content = msg.get("content", "")
+                audio_url = extract_audio_url_from_content(content)
+                if audio_url:
+                    monitor_logger.log_phase_start(request_id, 'audio_transcription')
+                    whisper_result = await call_faster_whisper(audio_url)
+                    if whisper_result.get("error"):
+                        monitor_logger.log_phase_end(request_id, 'audio_transcription', success=False, error_type=whisper_result.get("error", {}).get("type"), error_message=whisper_result.get("error", {}).get("message"))
+                        monitor_logger.end_request(request_id, success=False, error_type=whisper_result.get("error", {}).get("type"), error_message=whisper_result.get("error", {}).get("message"))
+                        return JSONResponse(content=whisper_result)
+                    transcription = extract_transcription_from_whisper(whisper_result)
+                    monitor_logger.log_phase_end(request_id, 'audio_transcription')
+
+                    if not transcription:
+                        monitor_logger.end_request(request_id, success=False, error_type="transcription_failed", error_message="No transcription found")
+                        return JSONResponse(content={"error": "Unable to transcribe audio content", "model": "brick"})
+
+                    transcription_messages = [{"role": "user", "content": transcription}]
+                    monitor_logger.log_phase_start(request_id, 'vllm_routing')
+                    vllm_result = await call_vllm_sr(transcription_messages)
+                    if vllm_result.get("error"):
+                        monitor_logger.log_phase_end(request_id, 'vllm_routing', success=False)
+                        monitor_logger.end_request(request_id, success=False)
+                        return JSONResponse(content=vllm_result)
+
+                    selected = vllm_result.get("model", "")
+                    monitor_logger.log_phase_end(request_id, 'vllm_routing')
+                    monitor_logger.log_phase_start(request_id, 'regolo_response')
+                    monitor_logger.log_phase_end(request_id, 'regolo_response')
+                    monitor_logger.end_request(request_id, success=True)
                     return StreamingResponse(
-                        call_qwen3_vl_stream(image_url),
+                        call_regolo_llm_stream(transcription_messages, selected),
                         media_type="text/event-stream",
-                        headers={
-                            "Cache-Control": "no-cache",
-                            "Connection": "keep-alive",
-                            "X-Accel-Buffering": "no",
-                        }
+                        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
                     )
-                else:
-                    image_result = await call_qwen3_vl(image_url)
-                    return JSONResponse(content=image_result)
-    
-    # CASO 2: Image-only
-    if filter_result["image"] and not filter_result["text"] and not filter_result["audio"]:
-        for msg in messages:
-            content = msg.get("content", "")
-            image_url = extract_image_url_from_content(content)
-            if image_url:
-                # Prova OCR con DeepSeek (batch - no streaming)
-                ocr_result = await call_deepseek_ocr(image_url)
 
-                # Estrai il testo dall'OCR
-                ocr_text = ""
-                if ocr_result.get("choices"):
-                    ocr_text = ocr_result["choices"][0].get("message", {}).get("content", "")
+        if filter_result["image"] and filter_result["audio"] and not filter_result["text"]:
+            logger.info("=== CASO 4: Image + Audio ===")
+            audio_transcription = ""
+            image_content_str = ""
+            for msg in messages:
+                content = msg.get("content", "")
+                audio_url = extract_audio_url_from_content(content)
+                if audio_url:
+                    monitor_logger.log_phase_start(request_id, 'audio_transcription')
+                    whisper_result = await call_faster_whisper(audio_url)
+                    audio_transcription = extract_transcription_from_whisper(whisper_result)
+                    monitor_logger.log_phase_end(request_id, 'audio_transcription')
+                image_url = extract_image_url_from_content(content)
+                if image_url:
+                    image_content_str = image_url
 
-                # Se OCR ha successo (testo significativo trovato), invia a vLLM SR
-                if ocr_text and len(ocr_text.strip()) > 10:
-                    ocr_messages = [{"role": "user", "content": ocr_text}]
+            monitor_logger.log_phase_start(request_id, 'image_processing')
+            image_result = await process_image_with_fallback(image_content_str)
+            monitor_logger.log_phase_end(request_id, 'image_processing')
 
+            combined_messages = [{"role": "user", "content": f"Audio transcription: {audio_transcription}\n\nImage analysis: {image_result}"}]
+            monitor_logger.log_phase_start(request_id, 'vllm_routing')
+            vllm_result = await call_vllm_sr(combined_messages)
+            monitor_logger.log_phase_end(request_id, 'vllm_routing')
+            monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(vllm_result)))
+            return JSONResponse(content=vllm_result)
+
+        if filter_result["text"] and filter_result["audio"] and not filter_result["image"]:
+            logger.info("=== CASO 5: Text + Audio ===")
+            audio_transcription = ""
+            text_content = ""
+            for msg in messages:
+                content = msg.get("content", "")
+                audio_url = extract_audio_url_from_content(content)
+                if audio_url:
+                    monitor_logger.log_phase_start(request_id, 'audio_transcription')
+                    whisper_result = await call_faster_whisper(audio_url)
+                    audio_transcription = extract_transcription_from_whisper(whisper_result)
+                    monitor_logger.log_phase_end(request_id, 'audio_transcription')
+                text_from_content = extract_text_from_content(content)
+                if text_from_content:
+                    text_content = text_from_content
+
+            combined_messages = [{"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nTesto originale: {text_content}"}]
+            monitor_logger.log_phase_start(request_id, 'vllm_routing')
+            vllm_result = await call_vllm_sr(combined_messages)
+            monitor_logger.log_phase_end(request_id, 'vllm_routing')
+            monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(vllm_result)))
+            return JSONResponse(content=vllm_result)
+
+        if filter_result["text"] and filter_result["image"] and filter_result["audio"]:
+            logger.info("=== CASO 6: Text + Image + Audio ===")
+            audio_transcription = ""
+            image_content_str = ""
+            text_content = ""
+            for msg in messages:
+                content = msg.get("content", "")
+                audio_url = extract_audio_url_from_content(content)
+                if audio_url:
+                    monitor_logger.log_phase_start(request_id, 'audio_transcription')
+                    whisper_result = await call_faster_whisper(audio_url)
+                    audio_transcription = extract_transcription_from_whisper(whisper_result)
+                    monitor_logger.log_phase_end(request_id, 'audio_transcription')
+                image_url = extract_image_url_from_content(content)
+                if image_url:
+                    image_content_str = image_url
+                text_from_content = extract_text_from_content(content)
+                if text_from_content:
+                    text_content = text_from_content
+
+            monitor_logger.log_phase_start(request_id, 'image_processing')
+            image_result = await process_image_with_fallback(image_content_str)
+            monitor_logger.log_phase_end(request_id, 'image_processing')
+
+            combined_messages = [{"role": "user", "content": f"Trascrizione audio: {audio_transcription}\n\nImmagine result: {image_result}\n\nTesto originale: {text_content}"}]
+            monitor_logger.log_phase_start(request_id, 'vllm_routing')
+            vllm_result = await call_vllm_sr(combined_messages)
+            monitor_logger.log_phase_end(request_id, 'vllm_routing')
+            monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(vllm_result)))
+            return JSONResponse(content=vllm_result)
+
+        if filter_result["text"] and not filter_result["image"] and not filter_result["audio"]:
+            logger.info("=== CASO 7: Text-only ===")
+            normalized_messages = normalize_messages_for_vllm_sr(messages)
+            monitor_logger.log_phase_start(request_id, 'vllm_routing')
+            vllm_result = await call_vllm_sr(normalized_messages)
+            if vllm_result.get("error"):
+                monitor_logger.log_phase_end(request_id, 'vllm_routing', success=False)
+                monitor_logger.end_request(request_id, success=False)
+                return JSONResponse(content=vllm_result)
+
+            selected_model = vllm_result.get("model", "")
+            monitor_logger.log_phase_end(request_id, 'vllm_routing')
+            monitor_logger.log_phase_start(request_id, 'regolo_response')
+            monitor_logger.log_phase_end(request_id, 'regolo_response')
+            monitor_logger.end_request(request_id, success=True)
+            return StreamingResponse(
+                call_regolo_llm_stream(normalized_messages, selected_model),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
+            )
+
+        if filter_result["image"] and filter_result["text"] and not filter_result["audio"]:
+            for msg in messages:
+                content = msg.get("content", "")
+                image_url = extract_image_url_from_content(content)
+                if image_url:
+                    monitor_logger.log_phase_start(request_id, 'image_processing')
                     if is_stream:
-                        # Stream mode: get model from vLLM SR, then stream LLM response
-                        vllm_result = await call_vllm_sr(ocr_messages)
-                        if vllm_result.get("error"):
-                            return JSONResponse(content=vllm_result)
+                        monitor_logger.log_phase_end(request_id, 'image_processing')
+                        monitor_logger.end_request(request_id, success=True)
+                        return StreamingResponse(
+                            call_qwen3_vl_stream(image_url),
+                            media_type="text/event-stream",
+                            headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
+                        )
+                    else:
+                        image_result = await call_qwen3_vl(image_url)
+                        monitor_logger.log_phase_end(request_id, 'image_processing')
+                        monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(image_result)))
+                        return JSONResponse(content=image_result)
 
-                        selected_model = vllm_result.get("model", "")
-                        if selected_model:
+        if filter_result["image"] and not filter_result["text"] and not filter_result["audio"]:
+            for msg in messages:
+                content = msg.get("content", "")
+                image_url = extract_image_url_from_content(content)
+                if image_url:
+                    monitor_logger.log_phase_start(request_id, 'image_processing')
+                    ocr_result = await call_deepseek_ocr(image_url)
+                    ocr_text = ocr_result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    if ocr_text and len(ocr_text.strip()) > 10:
+                        ocr_messages = [{"role": "user", "content": ocr_text}]
+                        if is_stream:
+                            vllm_result = await call_vllm_sr(ocr_messages)
+                            if vllm_result.get("error"):
+                                monitor_logger.log_phase_end(request_id, 'image_processing')
+                                monitor_logger.end_request(request_id, success=False)
+                                return JSONResponse(content=vllm_result)
+                            selected = vllm_result.get("model", "")
+                            monitor_logger.log_phase_end(request_id, 'image_processing')
+                            monitor_logger.log_phase_start(request_id, 'regolo_response')
+                            monitor_logger.log_phase_end(request_id, 'regolo_response')
+                            monitor_logger.end_request(request_id, success=True)
                             return StreamingResponse(
-                                call_regolo_llm_stream(ocr_messages, selected_model),
+                                call_regolo_llm_stream(ocr_messages, selected),
                                 media_type="text/event-stream",
-                                headers={
-                                    "Cache-Control": "no-cache",
-                                    "Connection": "keep-alive",
-                                    "X-Accel-Buffering": "no",
-                                }
+                                headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
                             )
                         else:
-                            return JSONResponse(content=vllm_result)
-                    else:
-                        llm_result = await call_vllm_sr(ocr_messages)
-                        return JSONResponse(content=llm_result)
+                            llm_result = await call_vllm_sr(ocr_messages)
+                            monitor_logger.log_phase_end(request_id, 'image_processing')
+                            monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(llm_result)))
+                            return JSONResponse(content=llm_result)
 
-                # Se OCR fallisce, usa Qwen3-VL per analisi visiva
-                if is_stream:
-                    return StreamingResponse(
-                        call_qwen3_vl_stream(image_url),
-                        media_type="text/event-stream",
-                        headers={
-                            "Cache-Control": "no-cache",
-                            "Connection": "keep-alive",
-                            "X-Accel-Buffering": "no",
-                        }
-                    )
-                else:
-                    image_result = await call_qwen3_vl(image_url)
-                    return JSONResponse(content=image_result)
-    
-    # Fallback
-    return JSONResponse(content={
-        "error": "Unable to process request with current modality combination",
-        "filter": filter_result
-    })
+                    if is_stream:
+                        monitor_logger.log_phase_end(request_id, 'image_processing')
+                        monitor_logger.end_request(request_id, success=True)
+                        return StreamingResponse(
+                            call_qwen3_vl_stream(image_url),
+                            media_type="text/event-stream",
+                            headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
+                        )
+                    else:
+                        image_result = await call_qwen3_vl(image_url)
+                        monitor_logger.log_phase_end(request_id, 'image_processing')
+                        monitor_logger.end_request(request_id, success=True, response_size_bytes=len(json.dumps(image_result)))
+                        return JSONResponse(content=image_result)
+
+        monitor_logger.end_request(request_id, success=False, error_type="unsupported_modality", error_message="Unable to process request")
+        return JSONResponse(content={"error": "Unable to process request with current modality combination", "filter": filter_result})
+
+    except Exception as e:
+        logger.exception(f"Error processing request {request_id}")
+        if request_id:
+            monitor_logger.end_request(request_id, success=False, error_type=type(e).__name__, error_message=str(e))
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 if __name__ == "__main__":
