@@ -183,7 +183,7 @@
             </div>
         </div>
 
-        <div id="timelineModal" class="modal hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;justify-content:center;align-items:center;z-index:1000;">
+        <div id="timelineModal" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);justify-content:center;align-items:center;z-index:1000;">
             <div style="background:#16213e;padding:30px;border-radius:10px;max-width:800px;width:90%;max-height:80vh;overflow-y:auto;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
                     <h2 style="color:#e94560;">Timeline Request</h2>
@@ -392,11 +392,11 @@
                     `).join('')}
                 </div>
             `;
-            document.getElementById('timelineModal').classList.remove('hidden');
+            document.getElementById('timelineModal').style.display = 'flex';
         }
 
         function closeModal() {
-            document.getElementById('timelineModal').classList.add('hidden');
+            document.getElementById('timelineModal').style.display = 'none';
         }
 
         function showTab(tabName) {

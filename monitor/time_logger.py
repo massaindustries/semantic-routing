@@ -173,21 +173,26 @@ class TimeLogger:
                        modality: Optional[str] = None) -> Dict[str, Any]:
         conn = self._get_conn()
         
+        conditions = []
         params = []
-        where_clause = ""
+        
         if start_date:
-            where_clause += " timestamp >= ?"
+            conditions.append("timestamp >= ?")
             params.append(start_date)
         else:
-            where_clause += " timestamp >= '1970-01-01'"
+            conditions.append("timestamp >= '1970-01-01'")
+        
         if end_date:
-            where_clause += " AND timestamp <= ?"
+            conditions.append("timestamp <= ?")
             params.append(end_date)
         else:
-            where_clause += " AND timestamp <= '2099-12-31'"
+            conditions.append("timestamp <= '2099-12-31'")
+        
         if modality:
-            where_clause += " AND modality = ?"
+            conditions.append("modality = ?")
             params.append(modality)
+        
+        where_clause = " WHERE " + " AND ".join(conditions) if conditions else ""
         
         total_query = f"SELECT COUNT(*) as total, SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count FROM time_logs{where_clause}"
         
