@@ -18,7 +18,7 @@ class TimeLogger:
     _instance = None
     
     def __init__(self, db_path: str = None):
-        if self._initialized:
+        if hasattr(self, '_initialized') and self._initialized:
             return
         self._initialized = True
         if db_path is None:
