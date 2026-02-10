@@ -29,17 +29,6 @@ services:
     networks:
       - semantic_routing_net
 
-  monitor:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.monitor
-    ports:
-      - "3030:8001"
-    networks:
-      - semantic_routing_net
-    depends_on:
-      - filter-router
-
 networks:
   semantic_routing_net:
     driver: bridge
