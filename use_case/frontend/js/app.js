@@ -699,10 +699,11 @@ this.hideRoutingAnimation();
          }
      }
 
-     showRoutingAnimation() {
+    showRoutingAnimation() {
         this.routingAnimationStartTime = Date.now();
-        // Populate the persistent assistant placeholder with the routing animation markup
-        const placeholder = this.assistantPlaceholder;
+        // Use the pre‑existing hidden routingMessage element (from HTML) as a persistent container
+        const routingEl = document.getElementById('routingMessage');
+        this.routingMessageElement = routingEl;
         const modelsList = [
             { name: 'openai', logo: 'openailogo.jpg' },
             { name: 'google', logo: 'gemmalogo.png' },
@@ -712,23 +713,23 @@ this.hideRoutingAnimation();
             { name: 'qwen', logo: 'qwenlogo.png' }
         ];
         const modelsHtml = modelsList.map(m => `
-            <div class="routing-message-model" data-model="${m.name}">
-                <img src="/logos/${m.logo}" alt="${m.name}">
+            <div class=\"routing-message-model\" data-model=\"${m.name}\">
+                <img src=\"/logos/${m.logo}\" alt=\"${m.name}\">
             </div>
         `).join('');
-        placeholder.innerHTML = `
-            <div class="routing-message-header">
-                <span class="sender">regolo-brick</span>
+        routingEl.innerHTML = `
+            <div class=\"routing-message-header\">
+                <span class=\"sender\">regolo-brick</span>
             </div>
-            <div class="routing-message-text">sorting to the best model in class</div>
-            <div class="routing-message-models">
+            <div class=\"routing-message-text\">sorting to the best model in class</div>
+            <div class=\"routing-message-models\">
                 ${modelsHtml}
             </div>
         `;
-        placeholder.style.display = 'block';
+        routingEl.style.display = 'block';
         this.scrollToBottom();
-        // Start animation on model elements inside the placeholder
-        const models = placeholder.querySelectorAll('.routing-message-model');
+        // Start animation on model elements inside the routing element
+        const models = routingEl.querySelectorAll('.routing-message-model');
         let currentIndex = 0;
         this.routingAnimationActive = true;
         const animateModels = () => {
@@ -748,14 +749,30 @@ this.hideRoutingAnimation();
         };
         animateModels();
     }
+            models.forEach(m => m.classList.remove('active', 'fading'));
+            models[currentIndex].classList.add('active');
+            const prevIndex = (currentIndex - 1 + models.length) % models.length;
+            const nextIndex = (currentIndex + 1) % models.length;
+            models[prevIndex].classList.add('fading');
+            models[nextIndex].classList.add('fading');
+            currentIndex = (currentIndex + 1) % models.length;
+            if (this.routingAnimationActive) {
+                setTimeout(animateModels, 300);
+            }
+        };
+        animateModels();
+    }
 
     hideRoutingAnimation(force = false) {
         if (force) {
             // Immediate removal, ignore minimum display time
             this.routingAnimationActive = false;
             if (this.routingMessageElement) {
-                this.routingMessageElement.remove();
-                this.routingMessageElement = null;
+                // Hide the routing element instead of removing it
+                this.routingMessageElement.style.display = 'none';
+                this.routingMessageElement.innerHTML = '';
+                // Keep reference for future use
+                // this.routingMessageElement = null;
             }
             return;
         }
@@ -765,9 +782,10 @@ this.hideRoutingAnimation();
         setTimeout(() => {
             this.routingAnimationActive = false;
             // Clear placeholder content and hide it
-            if (this.assistantPlaceholder) {
-                this.assistantPlaceholder.innerHTML = '';
-                this.assistantPlaceholder.style.display = 'none';
+            const routingEl = document.getElementById('routingMessage');
+            if (routingEl) {
+                routingEl.innerHTML = '';
+                routingEl.style.display = 'none';
             }
         }, remaining);
     }
