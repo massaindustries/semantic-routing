@@ -23,6 +23,15 @@ class ChatApp {
         this.bindElements();
         this.bindEvents();
         this.loadHistory();
+        // Ensure a persistent placeholder for assistant messages / routing animation
+        if (!document.getElementById('assistantPlaceholder')) {
+            const placeholder = document.createElement('div');
+            placeholder.id = 'assistantPlaceholder';
+            placeholder.className = 'message regolo-brick';
+            placeholder.style.display = 'none';
+            this.elements.messages.appendChild(placeholder);
+        }
+        this.assistantPlaceholder = document.getElementById('assistantPlaceholder');
     }
 
      bindElements() {
@@ -361,7 +370,7 @@ this.hideRoutingAnimation();
 
         const responseModality = this.detectModality(payload.messages[0].content);
         // Hide routing animation as soon as streaming response starts
-        this.hideRoutingAnimation();
+        this.hideRoutingAnimation(true);
 
         while (true) {
             const { done, value } = await reader.read();
@@ -426,19 +435,16 @@ this.hideRoutingAnimation();
     }
 
     renderStreamingMessage(message) {
-        const div = document.createElement('div');
-        div.className = 'message regolo-brick';
-
-        div.innerHTML = `
+        const placeholder = this.assistantPlaceholder;
+        placeholder.innerHTML = `
             <div class="message-header">
                 <span class="sender">${message.sender}</span>
             </div>
             <div class="message-content streaming"></div>
         `;
-
-        this.elements.messages.appendChild(div);
+        placeholder.style.display = 'block';
         this.scrollToBottom();
-        return div;
+        return placeholder;
     }
 
     updateStreamingMessage(div, content) {
@@ -533,9 +539,18 @@ this.hideRoutingAnimation();
     }
 
     renderMessage(message) {
-        const div = document.createElement('div');
-        const cssClass = message.type || (message.sender === 'you' ? 'user' : 'regolo-brick');
-        div.className = `message ${cssClass}`;
+        let targetDiv;
+        if (message.sender === 'regolo-brick') {
+            // Use persistent placeholder for assistant messages
+            targetDiv = this.assistantPlaceholder;
+            targetDiv.className = 'message regolo-brick';
+            targetDiv.style.display = 'block';
+        } else {
+            const div = document.createElement('div');
+            const cssClass = message.type || (message.sender === 'you' ? 'user' : 'regolo-brick');
+            div.className = `message ${cssClass}`;
+            targetDiv = div;
+        }
 
         let html = `
             <div class="message-header">
@@ -598,17 +613,19 @@ this.hideRoutingAnimation();
             `;
         }
 
-        div.innerHTML = html;
+        targetDiv.innerHTML = html;
 
         if (message.sender === 'regolo-brick') {
-            div.dataset.content = message.content;
+            targetDiv.dataset.content = message.content;
         }
 
-        this.elements.messages.appendChild(div);
+        if (targetDiv !== this.assistantPlaceholder) {
+            this.elements.messages.appendChild(targetDiv);
+        }
         this.scrollToBottom();
 
         if (window.MathJax && window.MathJax.typesetPromise) {
-            window.MathJax.typesetPromise([div]).catch(err => console.warn('MathJax rendering error:', err));
+            window.MathJax.typesetPromise([targetDiv]).catch(err => console.warn('MathJax rendering error:', err));
         }
     }
 
@@ -684,11 +701,8 @@ this.hideRoutingAnimation();
 
      showRoutingAnimation() {
         this.routingAnimationStartTime = Date.now();
-
-        this.routingMessageElement = document.createElement('div');
-        this.routingMessageElement.className = 'routing-message';
-        this.routingMessageElement.id = 'routingMessage';
-
+        // Populate the persistent assistant placeholder with the routing animation markup
+        const placeholder = this.assistantPlaceholder;
         const modelsList = [
             { name: 'openai', logo: 'openailogo.jpg' },
             { name: 'google', logo: 'gemmalogo.png' },
@@ -697,14 +711,12 @@ this.hideRoutingAnimation();
             { name: 'mistral', logo: 'mistrallogo.png' },
             { name: 'qwen', logo: 'qwenlogo.png' }
         ];
-
         const modelsHtml = modelsList.map(m => `
             <div class="routing-message-model" data-model="${m.name}">
                 <img src="/logos/${m.logo}" alt="${m.name}">
             </div>
         `).join('');
-
-        this.routingMessageElement.innerHTML = `
+        placeholder.innerHTML = `
             <div class="routing-message-header">
                 <span class="sender">regolo-brick</span>
             </div>
@@ -713,37 +725,27 @@ this.hideRoutingAnimation();
                 ${modelsHtml}
             </div>
         `;
-
-        this.elements.messages.appendChild(this.routingMessageElement);
+        placeholder.style.display = 'block';
         this.scrollToBottom();
-
-        const models = this.routingMessageElement.querySelectorAll('.routing-message-model');
+        // Start animation on model elements inside the placeholder
+        const models = placeholder.querySelectorAll('.routing-message-model');
         let currentIndex = 0;
         this.routingAnimationActive = true;
-
         const animateModels = () => {
-            if (!this.routingAnimationActive || !this.routingMessageElement) {
+            if (!this.routingAnimationActive) {
                 return;
             }
-
-            models.forEach(m => {
-                m.classList.remove('active', 'fading');
-            });
-
+            models.forEach(m => m.classList.remove('active', 'fading'));
             models[currentIndex].classList.add('active');
-
             const prevIndex = (currentIndex - 1 + models.length) % models.length;
             const nextIndex = (currentIndex + 1) % models.length;
             models[prevIndex].classList.add('fading');
             models[nextIndex].classList.add('fading');
-
             currentIndex = (currentIndex + 1) % models.length;
-
-            if (this.routingAnimationActive && this.routingMessageElement) {
+            if (this.routingAnimationActive) {
                 setTimeout(animateModels, 300);
             }
         };
-
         animateModels();
     }
 
@@ -762,9 +764,10 @@ this.hideRoutingAnimation();
 
         setTimeout(() => {
             this.routingAnimationActive = false;
-            if (this.routingMessageElement) {
-                this.routingMessageElement.remove();
-                this.routingMessageElement = null;
+            // Clear placeholder content and hide it
+            if (this.assistantPlaceholder) {
+                this.assistantPlaceholder.innerHTML = '';
+                this.assistantPlaceholder.style.display = 'none';
             }
         }, remaining);
     }
