@@ -291,12 +291,165 @@ class TimeLogger:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             request_id TEXT, event_name TEXT, timestamp REAL, data TEXT
         )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS vllm_classifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            request_id TEXT,
+            original_model TEXT,
+            selected_model TEXT,
+            decision TEXT,
+            category TEXT,
+            confidence REAL,
+            matched_rules TEXT,
+            matched_keywords TEXT,
+            reasoning TEXT,
+            timestamp TEXT,
+            FOREIGN KEY(request_id) REFERENCES time_logs(request_id)
+        )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS request_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            request_id TEXT,
+            role TEXT,
+            content TEXT,
+            content_type TEXT DEFAULT 'text',
+            sequence_order INTEGER,
+            FOREIGN KEY(request_id) REFERENCES time_logs(request_id)
+        )''')
         conn.execute('''CREATE INDEX IF NOT EXISTS idx_timestamp ON time_logs(timestamp)''')
         conn.execute('''CREATE INDEX IF NOT EXISTS idx_phase ON time_logs(phase)''')
         conn.execute('''CREATE INDEX IF NOT EXISTS idx_modality ON time_logs(modality)''')
+        conn.execute('''CREATE INDEX IF NOT EXISTS idx_vllm_request ON vllm_classifications(request_id)''')
+        conn.execute('''CREATE INDEX IF NOT EXISTS idx_msg_request ON request_messages(request_id)''')
         conn.commit()
     
     def clear_old_logs(self, days: int = 30):
         conn = self._get_conn()
         conn.execute('DELETE FROM time_logs WHERE timestamp < datetime("now", ?)', (f'-{days} days',))
         conn.commit()
+    
+    def log_vllm_classification(self, request_id: str, classification_data: Dict[str, Any]):
+        """Log vLLM SR classification data extracted from response headers."""
+        conn = self._get_conn()
+        try:
+            conn.execute('''
+                INSERT INTO vllm_classifications 
+                (request_id, original_model, selected_model, decision, category, 
+                 confidence, matched_rules, matched_keywords, reasoning, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                request_id,
+                classification_data.get('original_model'),
+                classification_data.get('selected_model'),
+                classification_data.get('decision'),
+                classification_data.get('category'),
+                classification_data.get('confidence'),
+                json.dumps(classification_data.get('matched_rules', [])),
+                json.dumps(classification_data.get('matched_keywords', [])),
+                classification_data.get('reasoning'),
+                datetime.now().isoformat()
+            ))
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Error logging vLLM classification: {e}")
+    
+    def log_request_messages(self, request_id: str, messages: List[Dict[str, Any]]):
+        """Log request messages for analysis."""
+        conn = self._get_conn()
+        try:
+            for idx, msg in enumerate(messages):
+                content = msg.get('content', '')
+                content_type = 'text'
+                
+                # Detect content type from message structure
+                if isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict):
+                            if block.get('type') == 'image_url':
+                                content_type = 'image'
+                            elif block.get('type') == 'audio':
+                                content_type = 'audio'
+                
+                # Normalize content to string for storage
+                if isinstance(content, list):
+                    texts = []
+                    for block in content:
+                        if isinstance(block, dict) and block.get('type') == 'text':
+                            texts.append(block.get('text', ''))
+                    content_str = ' '.join(texts) if texts else json.dumps(content)
+                else:
+                    content_str = str(content)
+                
+                conn.execute('''
+                    INSERT INTO request_messages 
+                    (request_id, role, content, content_type, sequence_order)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    request_id,
+                    msg.get('role', 'user'),
+                    content_str[:4000],  # Limit to avoid overflow
+                    content_type,
+                    idx
+                ))
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Error logging request messages: {e}")
+    
+    def get_vllm_classification(self, request_id: str) -> Optional[Dict[str, Any]]:
+        """Get vLLM classification data for a request."""
+        conn = self._get_conn()
+        try:
+            cursor = conn.execute(
+                'SELECT * FROM vllm_classifications WHERE request_id = ? ORDER BY id DESC LIMIT 1',
+                (request_id,)
+            )
+            row = cursor.fetchone()
+            if row:
+                result = dict(row)
+                # Parse JSON fields
+                result['matched_rules'] = json.loads(result.get('matched_rules', '[]'))
+                result['matched_keywords'] = json.loads(result.get('matched_keywords', '[]'))
+                return result
+            return None
+        except Exception as e:
+            logger.error(f"Error getting vLLM classification: {e}")
+            return None
+    
+    def get_request_messages(self, request_id: str) -> List[Dict[str, Any]]:
+        """Get request messages for a request."""
+        conn = self._get_conn()
+        try:
+            cursor = conn.execute(
+                'SELECT * FROM request_messages WHERE request_id = ? ORDER BY sequence_order',
+                (request_id,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Error getting request messages: {e}")
+            return []
+    
+    def get_request_details(self, request_id: str) -> Dict[str, Any]:
+        """Get complete request details including classification and messages."""
+        conn = self._get_conn()
+        try:
+            # Get base request info
+            cursor = conn.execute('SELECT * FROM time_logs WHERE request_id = ?', (request_id,))
+            request_row = cursor.fetchone()
+            request_info = dict(request_row) if request_row else {}
+            
+            # Get classification
+            classification = self.get_vllm_classification(request_id)
+            
+            # Get messages
+            messages = self.get_request_messages(request_id)
+            
+            # Get timeline
+            timeline = self.get_phase_timeline(request_id)
+            
+            return {
+                'request': request_info,
+                'classification': classification,
+                'messages': messages,
+                'timeline': timeline
+            }
+        except Exception as e:
+            logger.error(f"Error getting request details: {e}")
+            return {'request': {}, 'classification': None, 'messages': [], 'timeline': []}

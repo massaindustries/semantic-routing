@@ -63,6 +63,18 @@ async def get_daily_stats(days: int = 7) -> List[Dict]:
 async def get_phases() -> List[str]:
     return PHASES
 
+@app.get("/api/requests/{request_id}/classification")
+async def get_request_classification(request_id: str) -> Optional[Dict]:
+    return get_logger().get_vllm_classification(request_id)
+
+@app.get("/api/requests/{request_id}/messages")
+async def get_request_messages_endpoint(request_id: str) -> List[Dict]:
+    return get_logger().get_request_messages(request_id)
+
+@app.get("/api/requests/{request_id}/full")
+async def get_request_full_details(request_id: str) -> Dict:
+    return get_logger().get_request_details(request_id)
+
 @app.delete("/api/logs/clear")
 async def clear_old_logs(days: int = 30):
     get_logger().clear_old_logs(days)
