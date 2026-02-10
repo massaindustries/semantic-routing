@@ -6,7 +6,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY monitor/ ./monitor/
-COPY core.py .
 
 EXPOSE 8001
 

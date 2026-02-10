@@ -8,7 +8,31 @@ import json
 import os
 import threading
 
-from time_logger import init_logger, get_logger, PHASES
+from .time_logger import TimeLogger, PHASES
+
+logger = None
+background_task = None
+
+def get_logger():
+    global logger
+    if logger is None:
+        logger = TimeLogger(os.path.join(monitor_dir, 'timelog.db'))
+    return logger
+
+def init():
+    global logger, background_task
+    logger = TimeLogger(os.path.join(monitor_dir, 'timelog.db'))
+    background_task = threading.Thread(target=_cleanup_loop, daemon=True)
+    background_task.start()
+
+def _cleanup_loop():
+    import time
+    while True:
+        try:
+            get_logger().clear_old_logs(days=30)
+        except Exception:
+            pass
+        time.sleep(3600)
 
 monitor_dir = os.path.dirname(os.path.abspath(__file__))
 dashboard_dir = os.path.join(monitor_dir, 'dashboard')
@@ -23,28 +47,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-logger = None
-background_task = None
-
-def init():
-    global logger, background_task
-    logger = init_logger()
-    background_task = threading.Thread(target=_cleanup_loop, daemon=True)
-    background_task.start()
-
-def _cleanup_loop():
-    import time
-    while True:
-        try:
-            logger.clear_old_logs(days=30)
-        except Exception:
-            pass
-        time.sleep(3600)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
-
 @app.get("/")
 async def serve_dashboard():
     index_path = os.path.join(dashboard_dir, 'index.html')
@@ -55,45 +57,31 @@ async def serve_dashboard():
 @app.get("/api/stats")
 async def get_stats(start_date: Optional[str] = None, end_date: Optional[str] = None,
                    modality: Optional[str] = None) -> Dict[str, Any]:
-    if not logger:
-        init()
-    return logger.get_statistics(start_date, end_date, modality)
+    return get_logger().get_statistics(start_date, end_date, modality)
 
 @app.get("/api/requests")
 async def get_recent_requests(limit: int = 50) -> List[Dict]:
-    if not logger:
-        init()
-    return logger.get_recent_requests(limit)
+    return get_logger().get_recent_requests(limit)
 
 @app.get("/api/errors")
 async def get_errors(limit: int = 50) -> List[Dict]:
-    if not logger:
-        init()
-    return logger.get_errors(limit)
+    return get_logger().get_errors(limit)
 
 @app.get("/api/requests/{request_id}/timeline")
 async def get_request_timeline(request_id: str) -> List[Dict]:
-    if not logger:
-        init()
-    return logger.get_phase_timeline(request_id)
+    return get_logger().get_phase_timeline(request_id)
 
 @app.get("/api/distribution/modality")
 async def get_modality_distribution() -> Dict[str, int]:
-    if not logger:
-        init()
-    return logger.get_modality_distribution()
+    return get_logger().get_modality_distribution()
 
 @app.get("/api/distribution/model")
 async def get_model_distribution() -> Dict[str, int]:
-    if not logger:
-        init()
-    return logger.get_model_distribution()
+    return get_logger().get_model_distribution()
 
 @app.get("/api/stats/daily")
 async def get_daily_stats(days: int = 7) -> List[Dict]:
-    if not logger:
-        init()
-    return logger.get_daily_stats(days)
+    return get_logger().get_daily_stats(days)
 
 @app.get("/api/phases")
 async def get_phases() -> List[str]:
@@ -101,9 +89,7 @@ async def get_phases() -> List[str]:
 
 @app.delete("/api/logs/clear")
 async def clear_old_logs(days: int = 30):
-    if not logger:
-        init()
-    logger.clear_old_logs(days)
+    get_logger().clear_old_logs(days)
     return {"message": f"Cleared logs older than {days} days"}
 
 class LogCustomEventRequest(BaseModel):
@@ -113,9 +99,7 @@ class LogCustomEventRequest(BaseModel):
 
 @app.post("/api/events/custom")
 async def log_custom_event(request: LogCustomEventRequest):
-    if not logger:
-        init()
-    logger.log_custom_event(request.request_id, request.event_name, request.data)
+    get_logger().log_custom_event(request.request_id, request.event_name, request.data or {})
     return {"message": "Event logged"}
 
 class BatchQueryRequest(BaseModel):
@@ -126,19 +110,13 @@ class BatchQueryRequest(BaseModel):
 
 @app.post("/api/batch")
 async def batch_query(request: BatchQueryRequest) -> Dict[str, Any]:
-    if not logger:
-        init()
     return {
-        "statistics": logger.get_statistics(request.start_date, request.end_date, request.modality),
-        "recent_requests": logger.get_recent_requests(request.limit),
-        "modality_distribution": logger.get_modality_distribution(),
-        "model_distribution": logger.get_model_distribution(),
-        "daily_stats": logger.get_daily_stats(7)
+        "statistics": get_logger().get_statistics(request.start_date, request.end_date, request.modality),
+        "recent_requests": get_logger().get_recent_requests(request.limit),
+        "modality_distribution": get_logger().get_modality_distribution(),
+        "model_distribution": get_logger().get_model_distribution(),
+        "daily_stats": get_logger().get_daily_stats(7)
     }
-
-def create_monitor_app() -> FastAPI:
-    init()
-    return app
 
 if __name__ == "__main__":
     import uvicorn
