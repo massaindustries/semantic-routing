@@ -12,8 +12,6 @@ services:
       - vllm-sr
     networks:
       - semantic_routing_net
-    volumes:
-      - monitor_data:/app/monitor
 
   vllm-sr:
     image: ghcr.io/vllm-project/semantic-router/vllm-sr:latest
@@ -39,14 +37,9 @@ services:
       - "3030:8001"
     networks:
       - semantic_routing_net
-    volumes:
-      - monitor_data:/app/monitor
     depends_on:
       - filter-router
 
 networks:
   semantic_routing_net:
     driver: bridge
-
-volumes:
-  monitor_data:
