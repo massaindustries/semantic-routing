@@ -314,8 +314,6 @@ class ChatApp {
 
 if (payload.stream && response.body) {
                   await this.handleStreamingResponse(response, payload);
-                  // Ensure the routing animation is hidden after streaming completes (minimum 1 s already enforced)
-                  this.hideRoutingAnimation();
               } else {
                  const result = await response.json();
                  console.log('Response:', result);
@@ -362,6 +360,8 @@ this.hideRoutingAnimation();
         let messageDiv = null;
 
         const responseModality = this.detectModality(payload.messages[0].content);
+        // Hide routing animation as soon as streaming response starts
+        this.hideRoutingAnimation();
 
         while (true) {
             const { done, value } = await reader.read();
