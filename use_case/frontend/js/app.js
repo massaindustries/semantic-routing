@@ -369,8 +369,6 @@ this.hideRoutingAnimation();
         let messageDiv = null;
 
         const responseModality = this.detectModality(payload.messages[0].content);
-        // Hide routing animation as soon as streaming response starts
-        this.hideRoutingAnimation(true);
 
         while (true) {
             const { done, value } = await reader.read();
@@ -390,11 +388,13 @@ this.hideRoutingAnimation();
                         const content = this.parseStreamingChunk(chunk);
 
                         if (content !== null) {
-                            if (!assistantMessage) {
-                                assistantMessage = { sender: 'regolo-brick', content: '', modality: responseModality };
-                                this.messages.push(assistantMessage);
-                                messageDiv = this.renderStreamingMessage(assistantMessage);
-                            }
+                        if (!assistantMessage) {
+                            // Hide the routing animation now that streaming data is arriving
+                            this.hideRoutingAnimation(true);
+                            assistantMessage = { sender: 'regolo-brick', content: '', modality: responseModality };
+                            this.messages.push(assistantMessage);
+                            messageDiv = this.renderStreamingMessage(assistantMessage);
+                        }
 
                             assistantMessage.content += content;
                             this.updateStreamingMessage(messageDiv, assistantMessage.content);
