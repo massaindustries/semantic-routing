@@ -36,7 +36,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.monitor
     ports:
-      - "8001:8001"
+      - "3030:8001"
     networks:
       - semantic_routing_net
     volumes:

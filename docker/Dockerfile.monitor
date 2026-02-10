@@ -10,4 +10,4 @@ COPY core.py .
 
 EXPOSE 8001
 
-CMD ["python", "-m", "uvicorn", "monitor.dashboard:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "monitor.dashboard:app", "--host", "0.0.0.0", "--port", "8001"]

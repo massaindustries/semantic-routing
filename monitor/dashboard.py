@@ -41,6 +41,10 @@ def _cleanup_loop():
             pass
         time.sleep(3600)
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
+
 @app.get("/")
 async def serve_dashboard():
     index_path = os.path.join(dashboard_dir, 'index.html')
