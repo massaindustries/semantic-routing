@@ -479,5 +479,28 @@ async def chat_completions(request: Request):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.get("/v1/models")
+async def list_brick_model():
+    """
+    Restituisce l'elenco dei modelli disponibili.
+    In questa implementazione viene restituito **solo** il modello virtuale `brick`,
+    nel formato compatibile con l'API OpenAI.
+    """
+    model_info = BRICK_MODEL["brick"]
+    payload = {
+        "object": "list",
+        "data": [
+            {
+                "id": model_info["id"],
+                "object": "model",
+                "created": 0,
+                "owned_by": "regolo",
+                "type": model_info.get("type", "virtual"),
+                "description": model_info.get("description", "")
+            }
+        ]
+    }
+    return JSONResponse(content=payload)
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
