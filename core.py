@@ -426,16 +426,26 @@ async def chat_completions(request: Request):
             for msg in messages:
                 content = msg.get("content", "")
                 image_url = extract_image_url(content)
+                text_content = extract_text(content)
+                
                 if image_url:
+                    payload_content = [
+                        {"type": "text", "text": text_content},
+                        {"type": "image_url", "image_url": {"url": image_url}}
+                    ]
+                    
                     if is_stream:
                         return StreamingResponse(
-                            stream_llm_response([{"role": "user", "content": f"Analyze this image: {image_url}"}], "qwen3-vl-32b"),
+                            stream_llm_response([{"role": "user", "content": payload_content}], "qwen3-vl-32b"),
                             media_type="text/event-stream",
                             headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
                         )
                     else:
-                        result = await process_image(image_url)
-                        return JSONResponse(content=result)
+                        return StreamingResponse(
+                            stream_llm_response([{"role": "user", "content": payload_content}], "qwen3-vl-32b"),
+                            media_type="text/event-stream",
+                            headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+                        )
         
         if filter_result["image"] and not filter_result["text"] and not filter_result["audio"]:
             logger.info("[CHAT] Image-only request")
