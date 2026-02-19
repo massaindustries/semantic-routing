@@ -181,7 +181,8 @@ def init():
         # Determine base URL defaults
         default_base = (
             "https://api.openai.com" if provider_id == "openai" else
-            "https://api.regolo.ai/v1" if provider_id == "regolo" else ""
+            "https://api.regolo.ai/v1" if provider_id == "regolo" else
+            "https://api.x.ai/v1" if provider_id == "xai" else ""
         )
         base_url = typer.prompt("Base URL", default=default_base) if default_base else typer.prompt("Base URL")
         api_key = typer.prompt("API key (leave blank if none)", hide_input=True, default="")

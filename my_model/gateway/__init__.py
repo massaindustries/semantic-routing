@@ -88,7 +88,7 @@ def set_workspace_config(config: WorkspaceConfig) -> None:
 def _get_provider_instance(provider_cfg: ProviderConfig):
     """Instantiate a provider based on its configuration.
 
-    Supported providers: ``openai``, ``regolo`` and ``mock``.
+    Supported providers: ``openai``, ``regolo``, ``anthropic``, ``google`` and ``xai``.
     """
     provider_id = provider_cfg.provider_id.lower()
     api_key = provider_cfg.api_key.get_secret_value() if provider_cfg.api_key else None
