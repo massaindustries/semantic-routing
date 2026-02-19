@@ -1,0 +1,27 @@
+services:
+  filter-router:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.filter
+    ports:
+      - "8000:8000"
+    environment:
+      - VLLM_SR_URL=http://mock-router:8888/v1/chat/completions
+      - REGOLO_API_KEY=${REGOLO_API_KEY:-}
+    depends_on:
+      - mock-router
+    networks:
+      - semantic_routing_net
+
+  mock-router:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock-router
+    ports:
+      - "8888:8888"
+    networks:
+      - semantic_routing_net
+
+networks:
+  semantic_routing_net:
+    driver: bridge

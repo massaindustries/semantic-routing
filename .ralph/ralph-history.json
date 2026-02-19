@@ -357,21 +357,30 @@
         "tests/test_integration_gateway.py:39: TypeError",
         "FAILED tests/test_integration_gateway.py::test_chat_completions_stream_with_header"
       ]
+    },
+    {
+      "iteration": 21,
+      "startedAt": "2026-02-19T11:44:47.934Z",
+      "endedAt": "2026-02-19T11:45:21.512Z",
+      "durationMs": 33510,
+      "agent": "opencode",
+      "model": "regolo-ai/gpt-oss-120b",
+      "toolsUsed": {},
+      "filesModified": [
+        ".ralph/ralph-tasks.md",
+        "docker/README.md",
+        "docker/Dockerfile.mock-router",
+        "docker/docker-compose.mock.yml",
+        "docker/mock_router.py"
+      ],
+      "exitCode": 0,
+      "completionDetected": false,
+      "errors": []
     }
   ],
-  "totalDurationMs": 867877,
+  "totalDurationMs": 901387,
   "struggleIndicators": {
-    "repeatedErrors": {
-      "E           RuntimeError: Cannot add middleware after an application has started": 1,
-      "FAILED tests/test_mock_provider.py::test_mock_provider_non_stream - Failed: a...": 1,
-      "FAILED tests/test_mock_provider.py::test_mock_provider_stream - Failed: async...": 1,
-      "FAILED tests/test_vsr_client.py::test_vsr_client_header_preference - Failed: ...": 1,
-      "FAILED tests/test_vsr_client.py::test_vsr_client_fallback_to_json - Failed: a...": 1,
-      "FAILED tests/test_vsr_client.py::test_vsr_client_json_mode - Failed: async de...": 1,
-      "E       TypeError: TestClient.post() got an unexpected keyword argument 'stream'": 1,
-      "tests/test_integration_gateway.py:39: TypeError": 1,
-      "FAILED tests/test_integration_gateway.py::test_chat_completions_stream_with_header": 1
-    },
+    "repeatedErrors": {},
     "noProgressIterations": 0,
     "shortIterations": 0
   }

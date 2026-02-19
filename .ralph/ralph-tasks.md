@@ -218,7 +218,7 @@
   - Acceptance:
     - `pytest` verde in CI
 
-- [ ] Docker Compose opzionale (P1)
+- [x] Docker Compose opzionale (P1)
   - Obiettivo:
     - `docker compose up` avvia gateway + (opzionale) vsr + mock upstream
   - Nota:
