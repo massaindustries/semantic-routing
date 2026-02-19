@@ -129,7 +129,7 @@
   - Acceptance:
     - `my-model --help` completo + esempi in README
 
-- [ ] Implementare Gateway FastAPI (server locale)
+- [x] Implementare Gateway FastAPI (server locale)
   - Endpoints MVP:
     - `POST /v1/chat/completions`
     - `GET /v1/models`

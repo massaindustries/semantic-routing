@@ -2,6 +2,7 @@ import typer
 from typing import List, Optional
 
 from my_model.config import WorkspaceConfig, ModelConfig, RouterConfig, ProviderConfig
+from pydantic import SecretStr
 
 app = typer.Typer()
 model_app = typer.Typer()
@@ -106,7 +107,7 @@ def provider_add(
         provider_cfg = ProviderConfig(
             provider_id=provider_id,
             base_url=base_url,
-            api_key=api_key if api_key else None,
+            api_key=SecretStr(api_key) if api_key else None,
         )
         config.providers.append(provider_cfg)
         config.save()
@@ -234,8 +235,8 @@ def serve(
 
     # Run the FastAPI app from core.py
     import uvicorn
-    import core
-    uvicorn.run(core.app, host=host, port=port, log_level=log_level)
+    import my_model.gateway as gateway
+    uvicorn.run(gateway.app, host=host, port=port, log_level=log_level)
 
 # ===== Status command =====
 @app.command()
@@ -257,9 +258,7 @@ def status(
 def main():
     """Entry point for the CLI when invoked via console script."""
     app()
-def main():
-    """Entry point for the CLI when invoked via console script."""
-    app()
+# Duplicate main removed
 
 if __name__ == "__main__":
     app()
