@@ -397,40 +397,42 @@
     },
     {
       "iteration": 23,
-      "startedAt": "2026-02-19T11:46:13.802Z",
-      "endedAt": "2026-02-19T11:48:53.795Z",
-      "durationMs": 159926,
+      "startedAt": "2026-02-19T11:46:57.800Z",
+      "endedAt": "2026-02-19T11:49:41.964Z",
+      "durationMs": 164080,
       "agent": "opencode",
       "model": "regolo-ai/gpt-oss-120b",
       "toolsUsed": {},
       "filesModified": [
-        ".ralph/ralph-tasks.md",
+        ".ralph/ralph-loop.state.json",
         "my_model/gateway/__init__.py",
-        "my_model/providers/__init__.py",
-        "my_model/providers/google.py"
+        "my_model/providers/google.py",
+        "my_model/providers/xai.py",
+        ".ralph/ralph-history.json",
+        ".ralph/ralph-tasks.md",
+        "my_model/providers/__init__.py"
       ],
       "exitCode": 0,
       "completionDetected": false,
       "errors": [
-        "+\\n    Parameters\\n    ----------\\n    api_key: Optional[str]\\n        Google API key used as a query‑parameter `key`. If omitted the request\\n        is sent without authentication (useful for mock e",
-        "SyntaxError: unexpected character after line continuation character"
+        "+                except Exception:"
       ]
     },
     {
       "iteration": 24,
-      "startedAt": "2026-02-19T11:48:54.879Z",
-      "endedAt": "2026-02-19T11:50:10.629Z",
-      "durationMs": 75662,
+      "startedAt": "2026-02-19T11:49:43.045Z",
+      "endedAt": "2026-02-19T11:50:22.401Z",
+      "durationMs": 39286,
       "agent": "opencode",
       "model": "regolo-ai/gpt-oss-120b",
       "toolsUsed": {},
       "filesModified": [
+        ".ralph/ralph-loop.state.json",
         ".ralph/ralph-tasks.md",
+        "my_model/cli/main.py",
         "my_model/gateway/__init__.py",
-        "my_model/providers/__init__.py",
         ".ralph/ralph-history.json",
-        "my_model/providers/google.py",
-        "my_model/providers/xai.py"
+        "my_model/providers/__init__.py"
       ],
       "exitCode": 0,
       "completionDetected": false,
@@ -438,16 +440,18 @@
     },
     {
       "iteration": 25,
-      "startedAt": "2026-02-19T11:50:11.731Z",
-      "endedAt": "2026-02-19T11:50:24.508Z",
-      "durationMs": 12697,
+      "startedAt": "2026-02-19T11:50:23.477Z",
+      "endedAt": "2026-02-19T11:52:14.024Z",
+      "durationMs": 110453,
       "agent": "opencode",
       "model": "regolo-ai/gpt-oss-120b",
       "toolsUsed": {},
       "filesModified": [
+        ".ralph/ralph-loop.state.json",
+        "my_model/gateway/__init__.py",
         ".ralph/ralph-history.json",
         ".ralph/ralph-tasks.md",
-        "my_model/gateway/__init__.py"
+        "my_model/modality.py"
       ],
       "exitCode": 0,
       "completionDetected": false,
@@ -457,51 +461,84 @@
     },
     {
       "iteration": 26,
-      "startedAt": "2026-02-19T11:50:25.594Z",
-      "endedAt": "2026-02-19T11:51:29.358Z",
-      "durationMs": 63695,
+      "startedAt": "2026-02-19T11:52:15.122Z",
+      "endedAt": "2026-02-19T11:53:19.669Z",
+      "durationMs": 64479,
+      "agent": "opencode",
+      "model": "regolo-ai/gpt-oss-120b",
+      "toolsUsed": {},
+      "filesModified": [
+        "my_model/cli/main.py",
+        "my_model/gateway/__init__.py"
+      ],
+      "exitCode": 0,
+      "completionDetected": false,
+      "errors": [
+        "\u001b[91m\u001b[1mError: \u001b[0m\"regolo.ServiceUnavailableError: regolo.MidStreamFallbackError: regolo.APIConnectionError: APIConnectionError: OpenAIException - list index out of range. Received Model Group=gpt-o"
+      ]
+    },
+    {
+      "iteration": 27,
+      "startedAt": "2026-02-19T11:53:20.752Z",
+      "endedAt": "2026-02-19T11:53:48.752Z",
+      "durationMs": 27926,
       "agent": "opencode",
       "model": "regolo-ai/gpt-oss-120b",
       "toolsUsed": {},
       "filesModified": [
         ".ralph/ralph-tasks.md",
-        "my_model/gateway/__init__.py",
-        "my_model/modality.py"
+        "my_model/cli/main.py",
+        "my_model/gateway/__init__.py"
+      ],
+      "exitCode": 0,
+      "completionDetected": false,
+      "errors": [
+        "\u001b[91m\u001b[1mError: \u001b[0m\"regolo.ServiceUnavailableError: regolo.MidStreamFallbackError: regolo.APIConnectionError: APIConnectionError: OpenAIException - list index out of range. Received Model Group=gpt-o"
+      ]
+    },
+    {
+      "iteration": 28,
+      "startedAt": "2026-02-19T11:53:49.842Z",
+      "endedAt": "2026-02-19T11:54:04.308Z",
+      "durationMs": 14388,
+      "agent": "opencode",
+      "model": "regolo-ai/gpt-oss-120b",
+      "toolsUsed": {},
+      "filesModified": [
+        ".ralph/ralph-tasks.md",
+        "my_model/gateway/__init__.py"
       ],
       "exitCode": 0,
       "completionDetected": false,
       "errors": []
     },
     {
-      "iteration": 27,
-      "startedAt": "2026-02-19T11:51:30.444Z",
-      "endedAt": "2026-02-19T11:54:28.830Z",
-      "durationMs": 178305,
+      "iteration": 29,
+      "startedAt": "2026-02-19T11:54:05.392Z",
+      "endedAt": "2026-02-19T11:54:39.610Z",
+      "durationMs": 34149,
       "agent": "opencode",
       "model": "regolo-ai/gpt-oss-120b",
       "toolsUsed": {},
       "filesModified": [
         ".ralph/ralph-loop.state.json",
-        "my_model/gateway/__init__.py",
-        ".ralph/ralph-history.json",
         ".ralph/ralph-tasks.md",
-        "my_model/cli/main.py"
+        ".ralph/ralph-history.json",
+        "my_model/gateway/__init__.py"
       ],
       "exitCode": 0,
       "completionDetected": false,
       "errors": [
-        "E           RuntimeError: Cannot add middleware after an application has started",
         "E   SyntaxError: name '_middleware_configured' is used prior to global declaration",
-        "\u001b[91m\u001b[1mError: \u001b[0m\"regolo.ServiceUnavailableError: regolo.MidStreamFallbackError: regolo.APIConnectionError: APIConnectionError: OpenAIException - list index out of range. Received Model Group=gpt-o"
+        "except SyntaxError as e:"
       ]
     }
   ],
-  "totalDurationMs": 1441725,
+  "totalDurationMs": 1406201,
   "struggleIndicators": {
     "repeatedErrors": {
-      "E           RuntimeError: Cannot add middleware after an application has started": 1,
       "E   SyntaxError: name '_middleware_configured' is used prior to global declaration": 1,
-      "\u001b[91m\u001b[1mError: \u001b[0m\"regolo.ServiceUnavailableError: regolo.MidStreamFallbackError: regolo.APIConnec": 1
+      "except SyntaxError as e:": 1
     },
     "noProgressIterations": 0,
     "shortIterations": 0
