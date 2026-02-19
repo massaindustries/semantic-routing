@@ -17,6 +17,7 @@ import asyncio
 import json
 from fastapi.responses import JSONResponse, StreamingResponse
 import logging
+from my_model.modality import detect_modality, extract_audio_url, transcribe_audio
 from typing import Optional, AsyncIterator
 
 from my_model.config import WorkspaceConfig, ModelConfig, ProviderConfig
@@ -119,16 +120,45 @@ async def chat_completions(request: Request, x_selected_model: Optional[str] = H
         raise HTTPException(status_code=400, detail=f"Model '{model_requested}' not supported. Use alias '{_workspace_config.alias}'.")
     messages = payload.get("messages", [])
     stream = payload.get("stream", False)
-    # Normalise messages to plain‑text only (MVP behaviour)
-    normalized = BaseProvider.normalize_messages(messages)
-    # Determine backend identifier
+    # Detect modality (audio, image, text)
+    modality = detect_modality(messages)
     request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
     router_start = time.monotonic()
+    # Header override takes precedence over any multimodal handling.
     if x_selected_model:
         backend_id = x_selected_model
         logger.info(f"[Gateway] [{request_id}] Using explicit backend from header: {backend_id}")
+        # For header override we keep the original normalisation (plain‑text).
+        normalized = BaseProvider.normalize_messages(messages)
+    elif modality["audio"] and not modality["image"] and not modality["text"]:
+        # Audio‑only request: transcribe then route based on the transcription.
+        logger.info(f"[Gateway] [{request_id}] Audio‑only request – performing transcription")
+        audio_url = None
+        for msg in messages:
+            url = extract_audio_url(msg.get("content", ""))
+            if url:
+                audio_url = url
+                break
+        if not audio_url:
+            raise HTTPException(status_code=400, detail="No audio URL found in request")
+        transcription_res = await transcribe_audio(audio_url)
+        if transcription_res.get("error"):
+            return JSONResponse(content=transcription_res)
+        # Extract transcription text (different payload shapes)
+        transcription = transcription_res.get("text", "")
+        if not transcription:
+            choices = transcription_res.get("choices", [])
+            if choices:
+                transcription = choices[0].get("message", {}).get("content", "")
+        if not transcription:
+            raise HTTPException(status_code=500, detail="Unable to transcribe audio")
+        # Route based on transcription text
+        backend_id = await select_backend_id([{"role": "user", "content": transcription}], _workspace_config)
+        # Normalise the transcription for the provider call.
+        normalized = BaseProvider.normalize_messages([{"role": "user", "content": transcription}])
     else:
-        # Use routing via VSR if no explicit backend is provided.
+        # Default text‑only (or other multimodal) processing – normalise messages.
+        normalized = BaseProvider.normalize_messages(messages)
         if not _workspace_config.models:
             raise HTTPException(status_code=500, detail="No models configured in workspace")
         try:

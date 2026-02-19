@@ -454,14 +454,29 @@
       "errors": [
         "\u001b[91m\u001b[1mError: \u001b[0m\"regolo.ServiceUnavailableError: regolo.MidStreamFallbackError: regolo.APIConnectionError: APIConnectionError: OpenAIException - list index out of range. Received Model Group=gpt-o"
       ]
+    },
+    {
+      "iteration": 26,
+      "startedAt": "2026-02-19T11:50:25.594Z",
+      "endedAt": "2026-02-19T11:51:29.358Z",
+      "durationMs": 63695,
+      "agent": "opencode",
+      "model": "regolo-ai/gpt-oss-120b",
+      "toolsUsed": {},
+      "filesModified": [
+        ".ralph/ralph-tasks.md",
+        "my_model/gateway/__init__.py",
+        "my_model/modality.py"
+      ],
+      "exitCode": 0,
+      "completionDetected": false,
+      "errors": []
     }
   ],
-  "totalDurationMs": 1199725,
+  "totalDurationMs": 1263420,
   "struggleIndicators": {
-    "repeatedErrors": {
-      "\u001b[91m\u001b[1mError: \u001b[0m\"regolo.ServiceUnavailableError: regolo.MidStreamFallbackError: regolo.APIConnec": 1
-    },
+    "repeatedErrors": {},
     "noProgressIterations": 0,
-    "shortIterations": 1
+    "shortIterations": 0
   }
 }

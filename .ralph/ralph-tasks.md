@@ -243,7 +243,7 @@
   - Acceptance:
     - aggiungibile da wizard e selezionabile dal routing
 
-- [/] Estensione P2: multimodale (riprendere tuo codice, ma “pulito”)
+- [x] Estensione P2: multimodale (riprendere tuo codice, ma “pulito”)
   - Modalità:
     - text-only (già MVP)
     - audio-only -> trascrizione -> routing su testo
