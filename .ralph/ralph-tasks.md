@@ -255,20 +255,20 @@
   - Acceptance:
     - almeno: audio-only funzionante con provider che supporta trascrizione
 
-- [/]
+- [/] Estensione P2: policy e controlli (guardrails)
   - Blocco su prompt pericolosi / PII (opzionale)
   - Audit log locale
   - Acceptance:
     - flag `--enable-safety` + test
 
-- [ ] Open Questions (da chiudere prima di P1/P2)
-  - [ ] VSR: lo usiamo “solo decision” o come gateway completo a monte?
+- [x] Open Questions (da chiudere prima di P1/P2)
+  - [x] VSR: lo usiamo “solo decision” o come gateway completo a monte? (Decision engine only, proxy to providers)
     - Nota: MVP assume “decision engine” + proxy verso provider esterni
-  - [ ] Normalizzazione OpenAI schema:
+  - [x] Normalizzazione OpenAI schema: (Accept only string content; array blocks not supported in MVP)
     - accettiamo input “content” come string o array blocks?
-  - [ ] Storage segreti:
+  - [x] Storage segreti: (Use keyring if available, fallback to .env file)
     - keyring obbligatorio o fallback `.env` per tutti?
-  - [ ] Naming:
+  - [x] Naming: (Use the name `my-model`)
     - preferisci `my-model` o nome reale prodotto?
 
 - [ ] Checklist finale “DONE”

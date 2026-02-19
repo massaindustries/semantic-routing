@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 # Global flags and audit logging
 _safety_enabled: bool = False
 _audit_log_path: str | None = None
+_middleware_configured: bool = False
 
 def set_safety_enabled(enabled: bool) -> None:
     """Enable or disable the safety guardrails at runtime."""
@@ -158,15 +159,18 @@ def set_workspace_config(config: WorkspaceConfig) -> None:
     else:
         logger.setLevel(logging.INFO)
 
-    # Configure CORS middleware
-    origins = [config.gateway.cors_origin] if config.gateway.cors_origin else ["*"]
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    # Configure CORS middleware (once)
+    if not _middleware_configured:
+        origins = [config.gateway.cors_origin] if config.gateway.cors_origin else ["*"]
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        global _middleware_configured
+        _middleware_configured = True
     # Configure audit log path
     _set_audit_log_path(str(config._workspace_dir / "audit.log"))
 def _get_provider_instance(provider_cfg: ProviderConfig):
