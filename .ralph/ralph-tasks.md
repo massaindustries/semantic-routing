@@ -194,7 +194,7 @@
   - Acceptance:
     - install locale: `pip install -e .` crea comando `my-model`
 
-- [ ] Documentazione: README “da zero a gateway in 2 minuti”
+- [x] Documentazione: README “da zero a gateway in 2 minuti”
   - Sezioni:
     - Install
     - Init (wizard)

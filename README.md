@@ -97,3 +97,69 @@ curl -N http://127.0.0.1:8000/v1/chat/completions -H "Content-Type: application/
 - **8 GB RAM minimum** (16 GB recommended)
 - **Docker & Docker Compose**
 
+## Zero to gateway in 2 minutes
+
+### Install
+```bash
+pip install -e .
+```
+
+### Init (wizard)
+Run the interactive wizard to create a new virtual model alias and configure router and providers:
+```bash
+my-model init
+```
+Follow the prompts to:
+- Choose an alias for your virtual model (e.g., `brick`)
+- Provide the vLLM Semantic Router URL and mode
+- Add one or more providers (OpenAI‑compatible, Regolo, etc.) and their API keys
+- Register backend models you want to expose
+
+A workspace configuration will be saved in `~/.my-model/<ALIAS>/config.yaml`.
+
+### Serve
+Start the local gateway:
+```bash
+my-model serve --alias <ALIAS> --host 127.0.0.1 --port 8000
+```
+The server exposes OpenAI‑compatible endpoints on the given host/port.
+
+### Curl examples
+#### Non‑streaming request
+```bash
+curl -s http://127.0.0.1:8000/v1/models
+curl -s http://127.0.0.1:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"<ALIAS>","messages":[{"role":"user","content":"ciao"}]}'
+```
+
+#### Streaming request
+```bash
+curl -N http://127.0.0.1:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"<ALIAS>","stream":true,"messages":[{"role":"user","content":"scrivi 5 parole"}]}'
+```
+
+### Override header `x-selected-model`
+If you want to bypass the router and call a specific backend model directly, add the header `x-selected-model` with the backend model ID:
+```bash
+curl -s http://127.0.0.1:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "x-selected-model: my-regolo-model" \
+  -d '{"model":"<ALIAS>","messages":[{"role":"user","content":"hello"}]}'
+```
+
+### Config file reference
+The workspace config (`config.yaml`) contains:
+
+- `alias`: virtual model name
+- `gateway`: `host`, `port`, `log_level`, `cors`
+- `router`: `vsr_url`, `mode`, `timeout`
+- `providers`: list of provider definitions (`id`, `type`, `api_key`, `base_url`, …)
+- `models`: list of backend models (`backend_id`, `provider_id`, `model_id`, `tags`)
+- `routing`: optional static mapping from VSR model names to backend IDs
+
+Edit this file manually if you need to fine‑tune routing or add additional models.
+
+### Done
+You should now have a fully functional local OpenAI‑compatible gateway in under two minutes.
