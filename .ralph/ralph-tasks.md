@@ -74,7 +74,7 @@
   - Acceptance:
     - `my-model doctor` verifica connessione e key valida (senza loggare il token)
 
-- [ ] Implementare “Model Registry” (backend models)
+- [x] Implementare “Model Registry” (backend models)
   - CLI deve supportare:
     - `my-model model add` (provider, model_id, tags)
     - `my-model model list`
