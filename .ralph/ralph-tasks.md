@@ -54,7 +54,7 @@
   - Acceptance:
     - Provider finto `MockProvider` per test end-to-end senza rete
 
-- [ ] Implementare provider: OpenAI-compatible (generico)
+- [x] Implementare provider: OpenAI-compatible (generico)
   - Parametri:
     - `base_url` (es. `https://api.openai.com/v1` o endpoint compatibile)
     - `api_key`
