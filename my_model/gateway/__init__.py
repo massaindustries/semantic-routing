@@ -67,11 +67,17 @@ async def chat_completions(request: Request, x_selected_model: Optional[str] = H
         backend_id = x_selected_model
         logger.info(f"[Gateway] Using explicit backend from header: {backend_id}")
     else:
-        # For MVP without routing, select the first configured backend
+        # Use routing via VSR if no explicit backend is provided.
         if not _workspace_config.models:
             raise HTTPException(status_code=500, detail="No models configured in workspace")
-        backend_id = _workspace_config.models[0].backend_id
-        logger.info(f"[Gateway] Using first configured backend: {backend_id}")
+        try:
+            backend_id = await select_backend_id(normalized, _workspace_config)
+            logger.info(f"[Gateway] Routing selected backend: {backend_id}")
+        except Exception as exc:
+            # Fallback to first configured backend on routing errors.
+            logger.warning(f"[Gateway] Routing failed ({exc}), falling back to first configured backend")
+            backend_id = _workspace_config.models[0].backend_id
+            logger.info(f"[Gateway] Using first configured backend: {backend_id}")
     # Locate matching model configuration
     model_cfg: Optional[ModelConfig] = next((m for m in _workspace_config.models if m.backend_id == backend_id), None)
     if model_cfg is None:
@@ -81,7 +87,8 @@ async def chat_completions(request: Request, x_selected_model: Optional[str] = H
     if provider_cfg is None:
         raise HTTPException(status_code=500, detail=f"Provider '{model_cfg.provider_id}' not configured")
     # Build provider instance
-    provider = _get_provider_instance(provider_cfg)
+        logger.info(f"[Gateway] Alias: {_workspace_config.alias}, modality=text, selected_backend_id: {backend_id}, provider_id: {provider_cfg.provider_id}, model_id: {model_cfg.model_id}")
+        provider = _get_provider_instance(provider_cfg)
     # Forward request to provider
     result = await provider.chat_completions(normalized, model=model_cfg.model_id, stream=stream)
     if stream:

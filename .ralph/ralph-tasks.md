@@ -141,7 +141,7 @@
   - Acceptance:
     - `curl` non-stream e stream funzionano
 
-- [ ] Integrare routing nel Gateway (text-only MVP)
+- [x] Integrare routing nel Gateway (text-only MVP)
   - Pipeline:
     1) parse request JSON
     2) normalizza messages (solo testo)
