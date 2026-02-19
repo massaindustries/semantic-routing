@@ -1,4 +1,6 @@
 import typer
+import asyncio
+from my_model.router.client import VSRClient
 from typing import List, Optional
 
 from my_model.config import WorkspaceConfig, ModelConfig, RouterConfig, ProviderConfig
@@ -253,6 +255,78 @@ def status(
     import json
     typer.echo("Workspace configuration:")
     typer.echo(json.dumps(config.masked_dict(), indent=2))
+
+# ===== Doctor command =====
+@app.command()
+def doctor(
+    alias: str = typer.Option(..., "--alias", "-a", help="Workspace alias"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Perform a test call to a provider (if possible)"),
+):
+    """Run diagnostics on the workspace configuration and components."""
+    # Load workspace configuration
+    try:
+        config = WorkspaceConfig.load(alias)
+    except Exception as exc:
+        typer.echo(f"Error loading workspace config: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    errors = []
+
+    # Check providers
+    if not config.providers:
+        errors.append("No providers configured in workspace.")
+    else:
+        missing_keys = [p.provider_id for p in config.providers if not p.api_key]
+        if missing_keys:
+            typer.echo(f"Warning: Providers missing API key: {', '.join(missing_keys)}", err=True)
+
+    # Check models
+    if not config.models:
+        errors.append("No backend models configured in workspace.")
+
+    # Ping VSR router
+    try:
+        client = VSRClient(vsr_url=config.router.vsr_url, mode=config.router.mode, timeout=config.router.timeout)
+        selected = asyncio.run(client.get_selected_model([{"role": "system", "content": "ping"}]))
+        # Close client
+        asyncio.run(client.close())
+        if not selected:
+            errors.append("Router VSR did not return a selected model (empty response).")
+        else:
+            typer.echo(f"Router reachable, selected model: {selected}")
+    except Exception as exc:
+        errors.append(f"Failed to contact VSR router: {exc}")
+
+    # Optional dry-run test call to a provider (only for mock provider)
+    if dry_run:
+        try:
+            provider_cfg = None
+            for p in config.providers:
+                if p.provider_id == "mock":
+                    provider_cfg = p
+                    break
+            if provider_cfg is None:
+                provider_cfg = config.providers[0] if config.providers else None
+            if provider_cfg:
+                # Instantiate provider
+                from my_model.gateway import _get_provider_instance
+                provider = _get_provider_instance(provider_cfg)
+                # Send a simple hello message (non-stream)
+                response = asyncio.run(provider.chat_completions([{"role": "user", "content": "hello"}], model="dummy", stream=False))
+                typer.echo("Dry-run provider call succeeded.")
+            else:
+                typer.echo("No provider available for dry-run.", err=True)
+        except Exception as exc:
+            errors.append(f"Dry-run provider call failed: {exc}")
+
+    if errors:
+        typer.echo("Doctor check failed:", err=True)
+        for e in errors:
+            typer.echo(f"- {e}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo("All checks passed.")
+    raise typer.Exit(code=0)
 
 # ===== Entry point =====
 def main():

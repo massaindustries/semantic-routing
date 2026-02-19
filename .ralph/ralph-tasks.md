@@ -177,7 +177,7 @@
   - Acceptance:
     - `my-model serve --log-level debug` mostra routing senza dumpare segreti
 
-- [ ] “Doctor” e troubleshooting guidato
+  - [x] “Doctor” e troubleshooting guidato
   - `my-model doctor`:
     - verifica workspace valido
     - ping router VSR
