@@ -148,7 +148,7 @@ def set_workspace_config(config: WorkspaceConfig) -> None:
 
     This must be called before the FastAPI app starts handling requests.
     """
-    global _workspace_config
+    global _workspace_config, _middleware_configured
     _workspace_config = config
 
     # Configure logger level based on workspace config
@@ -169,7 +169,7 @@ def set_workspace_config(config: WorkspaceConfig) -> None:
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        global _middleware_configured
+
         _middleware_configured = True
     # Configure audit log path
     _set_audit_log_path(str(config._workspace_dir / "audit.log"))
