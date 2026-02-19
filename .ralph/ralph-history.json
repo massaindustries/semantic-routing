@@ -224,11 +224,34 @@
       "exitCode": 0,
       "completionDetected": false,
       "errors": []
+    },
+    {
+      "iteration": 14,
+      "startedAt": "2026-02-19T11:39:13.940Z",
+      "endedAt": "2026-02-19T11:39:55.817Z",
+      "durationMs": 41819,
+      "agent": "opencode",
+      "model": "regolo-ai/gpt-oss-120b",
+      "toolsUsed": {},
+      "filesModified": [
+        ".ralph/ralph-tasks.md",
+        "my_model/gateway/__init__.py",
+        "gateway_stream_test.py"
+      ],
+      "exitCode": 0,
+      "completionDetected": false,
+      "errors": [
+        "+    except asyncio.CancelledError:",
+        "+        logger.error(f\"[Gateway] Streaming error: {exc}\")"
+      ]
     }
   ],
-  "totalDurationMs": 541751,
+  "totalDurationMs": 583570,
   "struggleIndicators": {
-    "repeatedErrors": {},
+    "repeatedErrors": {
+      "+    except asyncio.CancelledError:": 1,
+      "+        logger.error(f\"[Gateway] Streaming error: {exc}\")": 1
+    },
     "noProgressIterations": 0,
     "shortIterations": 0
   }

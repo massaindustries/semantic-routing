@@ -152,7 +152,7 @@
   - Acceptance:
     - Log include: alias, modality=text, selected_backend_id, provider_id, model_id
 
-- [ ] Implementare streaming SSE robusto (passthrough)
+- [x] Implementare streaming SSE robusto (passthrough)
   - Requisiti:
     - proxy di bytes SSE senza buffering eccessivo
     - gestione CancelledError pulita

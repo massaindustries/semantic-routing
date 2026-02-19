@@ -9,15 +9,37 @@ The gateway uses the workspace configuration to validate the alias, selects the 
 """
 
 from fastapi import FastAPI, Request, HTTPException, Header
+import asyncio
+import json
 from fastapi.responses import JSONResponse, StreamingResponse
 import logging
-from typing import Optional
+from typing import Optional, AsyncIterator
 
 from my_model.config import WorkspaceConfig, ModelConfig, ProviderConfig
 from my_model.router.client import select_backend_id
 from my_model.providers import OpenAIProvider, RegoloProvider, MockProvider, BaseProvider
 
 logger = logging.getLogger(__name__)
+
+async def _wrap_sse_stream(stream: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
+    """Wrap an async SSE byte stream, handling client disconnects and errors.
+
+    - Stops iteration cleanly on ``asyncio.CancelledError`` (client closed).
+    - On any other exception, logs the error and yields a single SSE error
+      event in OpenAI format before terminating.
+    """
+    try:
+        async for chunk in stream:
+            yield chunk
+    except asyncio.CancelledError:
+        logger.info("[Gateway] SSE client disconnected")
+        # Silently stop iteration.
+        return
+    except Exception as exc:
+        logger.error(f"[Gateway] Streaming error: {exc}")
+        err = {"error": {"message": str(exc)}}
+        yield f"data: {json.dumps(err)}\n\n".encode("utf-8")
+        return
 
 app = FastAPI()
 
@@ -87,13 +109,13 @@ async def chat_completions(request: Request, x_selected_model: Optional[str] = H
     if provider_cfg is None:
         raise HTTPException(status_code=500, detail=f"Provider '{model_cfg.provider_id}' not configured")
     # Build provider instance
-        logger.info(f"[Gateway] Alias: {_workspace_config.alias}, modality=text, selected_backend_id: {backend_id}, provider_id: {provider_cfg.provider_id}, model_id: {model_cfg.model_id}")
-        provider = _get_provider_instance(provider_cfg)
+    logger.info(f"[Gateway] Alias: {_workspace_config.alias}, modality=text, selected_backend_id: {backend_id}, provider_id: {provider_cfg.provider_id}, model_id: {model_cfg.model_id}")
+    provider = _get_provider_instance(provider_cfg)
     # Forward request to provider
     result = await provider.chat_completions(normalized, model=model_cfg.model_id, stream=stream)
     if stream:
         # Provider returns an async iterator of SSE bytes
-        return StreamingResponse(result, media_type="text/event-stream", headers={"Cache-Control": "no-cache", "Connection": "keep-alive"})
+        return StreamingResponse(_wrap_sse_stream(result), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "Connection": "keep-alive"})  # type: ignore[arg-type]
     else:
         # Provider returns a JSON‑compatible dict
         return JSONResponse(content=result)
