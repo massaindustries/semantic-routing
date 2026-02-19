@@ -160,7 +160,7 @@
   - Acceptance:
     - test manuale con client SSE (curl) + chiusura connessione senza crash
 
-- [ ] Implementare `/v1/models` coerente con modello virtuale
+- [x] Implementare `/v1/models` coerente con modello virtuale
   - Deve restituire SOLO l’alias come modello disponibile (MVP)
   - (P1) opzionale: includere anche backend models con `owned_by=provider`
   - Acceptance:
