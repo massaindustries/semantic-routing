@@ -17,14 +17,95 @@ import asyncio
 import json
 from fastapi.responses import JSONResponse, StreamingResponse
 import logging
-from my_model.modality import detect_modality, extract_audio_url, transcribe_audio
-from typing import Optional, AsyncIterator
+from my_model.modality import detect_modality, extract_audio_url, transcribe_audio, extract_text, extract_image_url
+from typing import Optional, AsyncIterator, List, Dict, Any
 
 from my_model.config import WorkspaceConfig, ModelConfig, ProviderConfig
 from my_model.router.client import select_backend_id
 from my_model.providers import OpenAIProvider, RegoloProvider, MockProvider, AnthropicProvider, GoogleGeminiProvider, XAIProvider, BaseProvider
 
 logger = logging.getLogger(__name__)
+
+# Global flags and audit logging
+_safety_enabled: bool = False
+_audit_log_path: str | None = None
+
+def set_safety_enabled(enabled: bool) -> None:
+    """Enable or disable the safety guardrails at runtime."""
+    global _safety_enabled
+    _safety_enabled = enabled
+
+def _set_audit_log_path(path: str) -> None:
+    """Set the file path for the audit log. Called when workspace config is set."""
+    global _audit_log_path
+    _audit_log_path = path
+
+def _log_audit(request_id: str, messages: list, blocked: bool, reason: str | None) -> None:
+    """Write an audit entry to the audit log file if configured.
+
+    Args:
+        request_id: Unique identifier for the request.
+        messages: Original list of OpenAI‑style messages.
+        blocked: Whether the request was blocked by safety checks.
+        reason: Reason for blocking, or ``None`` if not blocked.
+    """
+    if not _audit_log_path:
+        return
+    from datetime import datetime
+    import json
+    entry = {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "request_id": request_id,
+        "blocked": blocked,
+        "reason": reason,
+        "messages": messages,
+    }
+    try:
+        with open(_audit_log_path, "a", encoding="utf-8") as f:
+            json.dump(entry, f)
+            f.write("\n")
+    except Exception as exc:
+        logger.error(f"[Gateway] Failed to write audit log: {exc}")
+
+import re
+
+def _detect_prohibited_content(messages: list) -> str | None:
+    """Detect dangerous or PII content in the request messages.
+
+    Returns a string describing the reason if a violation is found, otherwise ``None``.
+    """
+    # Combine all textual content into a single lower‑cased string.
+    text_parts = []
+    for msg in messages:
+        content = msg.get("content")
+        if isinstance(content, str):
+            text_parts.append(content)
+        elif isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    text_parts.append(block.get("text", ""))
+    combined = " ".join(text_parts).lower()
+
+    dangerous_keywords = [
+        "kill", "attack", "harm", "danger", "weapon", "bomb", "explosive", "terror",
+        "murder", "assassinate", "suicide",
+    ]
+    for kw in dangerous_keywords:
+        if kw in combined:
+            return f"dangerous content detected ('{kw}')"
+
+    pii_patterns = [
+        r"\b\d{3}-\d{2}-\d{4}\b",
+        r"\b\d{16}\b",
+        r"\b[\w\.-]+@[\w\.-]+\.\w{2,}\b",
+        r"\bpassword\b",
+        r"\bsecret\b",
+        r"\bapi\s*key\b",
+    ]
+    for pat in pii_patterns:
+        if re.search(pat, combined, re.IGNORECASE):
+            return "potential PII detected"
+    return None
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -123,6 +204,11 @@ async def chat_completions(request: Request, x_selected_model: Optional[str] = H
     # Detect modality (audio, image, text)
     modality = detect_modality(messages)
     request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+if _safety_enabled:
+    reason = _detect_prohibited_content(messages)
+    if reason:
+        _log_audit(request_id, messages, True, reason)
+        raise HTTPException(status_code=400, detail=f"Request blocked by safety policy: {reason}")
     router_start = time.monotonic()
     # Header override takes precedence over any multimodal handling.
     if x_selected_model:
