@@ -166,7 +166,7 @@
   - Acceptance:
     - `GET /v1/models` -> lista con `id=<ALIAS>`
 
-- [ ] Logging, telemetry locale e sicurezza base
+- [x] Logging, telemetry locale e sicurezza base
   - Logging:
     - request-id
     - tempi (router decision, provider latency)

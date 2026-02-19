@@ -9,6 +9,10 @@ The gateway uses the workspace configuration to validate the alias, selects the 
 """
 
 from fastapi import FastAPI, Request, HTTPException, Header
+import uuid
+import time
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 import asyncio
 import json
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -20,6 +24,15 @@ from my_model.router.client import select_backend_id
 from my_model.providers import OpenAIProvider, RegoloProvider, MockProvider, BaseProvider
 
 logger = logging.getLogger(__name__)
+
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id = str(uuid.uuid4())
+        request.state.request_id = request_id
+        logger.info(f"[Gateway] Incoming request {request.method} {request.url.path} - ID {request_id}")
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
 
 async def _wrap_sse_stream(stream: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
     """Wrap an async SSE byte stream, handling client disconnects and errors.
@@ -42,6 +55,7 @@ async def _wrap_sse_stream(stream: AsyncIterator[bytes]) -> AsyncIterator[bytes]
         return
 
 app = FastAPI()
+app.add_middleware(RequestIdMiddleware)
 
 # Global config set by the CLI before server start.
 _workspace_config: Optional[WorkspaceConfig] = None
@@ -54,6 +68,23 @@ def set_workspace_config(config: WorkspaceConfig) -> None:
     global _workspace_config
     _workspace_config = config
 
+    # Configure logger level based on workspace config
+    log_level_name = getattr(config.gateway, "log_level", "info").upper()
+    numeric_level = getattr(logging, log_level_name, None)
+    if isinstance(numeric_level, int):
+        logger.setLevel(numeric_level)
+    else:
+        logger.setLevel(logging.INFO)
+
+    # Configure CORS middleware
+    origins = [config.gateway.cors_origin] if config.gateway.cors_origin else ["*"]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 def _get_provider_instance(provider_cfg: ProviderConfig):
     """Instantiate a provider based on its configuration.
 
@@ -85,21 +116,23 @@ async def chat_completions(request: Request, x_selected_model: Optional[str] = H
     # Normalise messages to plain‑text only (MVP behaviour)
     normalized = BaseProvider.normalize_messages(messages)
     # Determine backend identifier
+    request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    router_start = time.monotonic()
     if x_selected_model:
         backend_id = x_selected_model
-        logger.info(f"[Gateway] Using explicit backend from header: {backend_id}")
+        logger.info(f"[Gateway] [{request_id}] Using explicit backend from header: {backend_id}")
     else:
         # Use routing via VSR if no explicit backend is provided.
         if not _workspace_config.models:
             raise HTTPException(status_code=500, detail="No models configured in workspace")
         try:
             backend_id = await select_backend_id(normalized, _workspace_config)
-            logger.info(f"[Gateway] Routing selected backend: {backend_id}")
         except Exception as exc:
-            # Fallback to first configured backend on routing errors.
-            logger.warning(f"[Gateway] Routing failed ({exc}), falling back to first configured backend")
+            logger.warning(f"[Gateway] [{request_id}] Routing failed ({exc}), falling back to first configured backend")
             backend_id = _workspace_config.models[0].backend_id
-            logger.info(f"[Gateway] Using first configured backend: {backend_id}")
+    router_elapsed = time.monotonic() - router_start
+    logger.info(f"[Gateway] [{request_id}] Routing selected backend: {backend_id} (t={router_elapsed:.3f}s)")
+
     # Locate matching model configuration
     model_cfg: Optional[ModelConfig] = next((m for m in _workspace_config.models if m.backend_id == backend_id), None)
     if model_cfg is None:
@@ -109,10 +142,13 @@ async def chat_completions(request: Request, x_selected_model: Optional[str] = H
     if provider_cfg is None:
         raise HTTPException(status_code=500, detail=f"Provider '{model_cfg.provider_id}' not configured")
     # Build provider instance
-    logger.info(f"[Gateway] Alias: {_workspace_config.alias}, modality=text, selected_backend_id: {backend_id}, provider_id: {provider_cfg.provider_id}, model_id: {model_cfg.model_id}")
+    logger.info(f"[Gateway] [{request_id}] Alias: {_workspace_config.alias}, modality=text, selected_backend_id: {backend_id}, provider_id: {provider_cfg.provider_id}, model_id: {model_cfg.model_id}")
     provider = _get_provider_instance(provider_cfg)
     # Forward request to provider
+    provider_start = time.monotonic()
     result = await provider.chat_completions(normalized, model=model_cfg.model_id, stream=stream)
+    provider_elapsed = time.monotonic() - provider_start
+    logger.info(f"[Gateway] [{request_id}] Provider '{provider_cfg.provider_id}' latency: {provider_elapsed:.3f}s")
     if stream:
         # Provider returns an async iterator of SSE bytes
         return StreamingResponse(_wrap_sse_stream(result), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "Connection": "keep-alive"})  # type: ignore[arg-type]
