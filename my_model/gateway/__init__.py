@@ -18,7 +18,7 @@ import json
 from fastapi.responses import JSONResponse, StreamingResponse
 import logging
 from my_model.modality import detect_modality, extract_audio_url, transcribe_audio, extract_text, extract_image_url
-from typing import Optional, AsyncIterator, List, Dict, Any
+from typing import Optional, AsyncIterator, List, Dict, Any, cast
 
 from my_model.config import WorkspaceConfig, ModelConfig, ProviderConfig
 from my_model.router.client import select_backend_id
@@ -276,7 +276,7 @@ async def chat_completions(request: Request, x_selected_model: Optional[str] = H
     _log_audit(request_id, messages, False, None)
     if stream:
         # Provider returns an async iterator of SSE bytes
-        return StreamingResponse(_wrap_sse_stream(result), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "Connection": "keep-alive"})  # type: ignore[arg-type]
+        return StreamingResponse(_wrap_sse_stream(cast(AsyncIterator[bytes], result)), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "Connection": "keep-alive"})  # type: ignore[arg-type]
     else:
         # Provider returns a JSON‑compatible dict
         return JSONResponse(content=result)

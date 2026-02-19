@@ -255,7 +255,7 @@
   - Acceptance:
     - almeno: audio-only funzionante con provider che supporta trascrizione
 
-- [ ] Estensione P2: policy e controlli (guardrails)
+- [/]
   - Blocco su prompt pericolosi / PII (opzionale)
   - Audit log locale
   - Acceptance:

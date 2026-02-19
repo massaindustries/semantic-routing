@@ -240,10 +240,11 @@ def serve(
 
     # Safety guardrails
     if enable_safety:
-        set_safety_enabled(True)
+        import my_model.gateway as gateway
+        gateway.set_safety_enabled(True)
         # Configure audit log file within the workspace directory
         audit_path = config._workspace_dir / "audit.log"
-        _set_audit_log_path(str(audit_path))
+        gateway._set_audit_log_path(str(audit_path))
     # Run the FastAPI app from core.py
     import uvicorn
     import my_model.gateway as gateway
