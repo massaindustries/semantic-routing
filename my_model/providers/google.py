@@ -1,9 +1,11 @@
-'''Google Gemini provider – OpenAI‑compatible adapter.
+'''Google Gemini provider – adapter for the Gemini API.
 
-This provider implements :class:`BaseProvider` for Google's Gemini API
-(Generative Language). It forwards a chat‑completion request to the Gemini
-`generateContent` endpoint. The provider supports both normal (JSON) and
-streaming (SSE) responses.
+This provider implements the :class:`BaseProvider` contract for the
+Google Generative Language (Gemini) API. It translates the OpenAI‑style
+chat request into Gemini's ``generateContent`` request and returns a
+response compatible with the OpenAI format expected by the gateway.
+
+Both synchronous (non‑stream) and streaming responses are supported.
 '''
 
 import asyncio
@@ -15,84 +17,81 @@ from .base import BaseProvider, ProviderError
 
 
 class GoogleGeminiProvider(BaseProvider):
-    """Adapter for Google Gemini (Generative Language) API.
+    """Adapter for Google Gemini chat completions.
 
     Parameters
     ----------
     api_key: Optional[str]
-        Google API key used as a query‑parameter `key`. If omitted the request
-        is sent without authentication (useful for mock endpoints).
+        API key for the Gemini service. If omitted, the request is sent
+        without the ``key`` query parameter (useful for mock servers).
     base_url: str, optional
-        Base URL for the service. Defaults to the public Gemini endpoint
-        `https://generativelanguage.googleapis.com/v1`.
+        Base URL for the Gemini API. Defaults to the public endpoint
+        ``https://generativelanguage.googleapis.com/v1``.
     timeout: int, default 30
         HTTP timeout (seconds) for both connect and read operations.
     max_retries: int, default 3
-        Number of retry attempts for transient `429` or `5xx` errors.
+        Number of retry attempts for transient ``429`` or ``5xx`` errors.
     """
-    provider_id = 'google'
 
-    def __init__(self, api_key: Optional[str] = None, *, base_url: str = 'https://generativelanguage.googleapis.com/v1', timeout: int = 30, max_retries: int = 3):
+    provider_id = "google"
+
+    def __init__(self, api_key: Optional[str] = None, *, base_url: str = "https://generativelanguage.googleapis.com/v1", timeout: int = 30, max_retries: int = 3):
         self.base_url = base_url.rstrip('/')
         self.api_key = api_key
         self.timeout = timeout
         self.max_retries = max_retries
+        # Reuse a single AsyncClient for the lifetime of the instance.
         self._client = httpx.AsyncClient(timeout=httpx.Timeout(connect=5.0, read=timeout, write=timeout, pool=timeout))
 
-    def _map_role(self, role: str) -> str:
-        """Map OpenAI role to Gemini role.
+    def _convert_message(self, msg: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert an OpenAI‑style message to Gemini format.
 
-        Gemini uses `user` for user messages and `model` for assistant
-        messages. Any other role is passed through unchanged.
+        Gemini expects a ``role`` field where ``assistant`` becomes ``model``.
+        The content is expressed as a list of ``parts`` containing text.
         """
-        if role.lower() == 'assistant':
-            return 'model'
-        return role.lower()
+        role = msg.get("role", "user")
+        if role == "assistant":
+            role = "model"
+        content = msg.get("content", "")
+        return {"role": role, "parts": [{"text": str(content)}]}
 
-    def _messages_to_contents(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Convert OpenAI chat messages to Gemini ``contents`` format.
-
-        Each OpenAI message is turned into a dict with ``role`` and a single
-        ``parts`` element containing the plain text content.
-        """
-        contents: List[Dict[str, Any]] = []
-        for msg in messages:
-            role = self._map_role(msg.get('role', 'user'))
-            content = msg.get('content', '')
-            contents.append({
-                'role': role,
-                'parts': [{'text': str(content)}],
-            })
-        return contents
+    def _prepare_payload(self, messages: List[Dict[str, Any]], model: str, stream: bool, temperature: float, extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Build the JSON payload for a Gemini ``generateContent`` request."""
+        gemini_messages = [self._convert_message(m) for m in messages]
+        payload: Dict[str, Any] = {
+            "contents": gemini_messages,
+            "generationConfig": {"temperature": temperature},
+            "stream": stream,
+        }
+        if extra:
+            payload.update(extra)
+        return payload
 
     async def _request(self, model: str, payload: Dict[str, Any], stream: bool) -> Any:
         """Internal helper to perform the HTTP request with retries.
 
-        Returns either a JSON ``dict`` (non‑stream) or an ``AsyncIterator[bytes]``
-        for streaming mode.
+        Returns a JSON ``dict`` for non‑streaming calls or an ``AsyncIterator[bytes]``
+        yielding SSE ``data`` lines for streaming calls.
         """
-        url = f'{self.base_url}/models/{model}:generateContent'
+        url = f"{self.base_url}/models/{model}:generateContent"
         params: Dict[str, str] = {}
         if self.api_key:
-            params['key'] = self.api_key
-        if stream:
-            params['alt'] = 'sse'
-        headers: Dict[str, str] = {'Content-Type': 'application/json'}
-
+            params["key"] = self.api_key
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
         for attempt in range(self.max_retries):
             try:
                 if stream:
-                    async with self._client.stream('POST', url, json=payload, headers=headers, params=params) as response:
+                    async with self._client.stream("POST", url, json=payload, params=params, headers=headers) as response:
                         response.raise_for_status()
                         return self._stream_iterator(response)
                 else:
-                    response = await self._client.post(url, json=payload, headers=headers, params=params)
+                    response = await self._client.post(url, json=payload, params=params, headers=headers)
                     response.raise_for_status()
                     return response.json()
             except httpx.HTTPStatusError as exc:
                 try:
                     err_json = exc.response.json()
-                    message = err_json.get('error', {}).get('message', exc.response.text)
+                    message = err_json.get("error", {}).get("message", exc.response.text)
                 except Exception:
                     message = str(exc)
                 if exc.response.status_code in {429, 500, 502, 503, 504} and attempt < self.max_retries - 1:
@@ -104,26 +103,26 @@ class GoogleGeminiProvider(BaseProvider):
                     await asyncio.sleep(2 ** attempt)
                     continue
                 raise ProviderError(0, str(exc)) from exc
-        raise ProviderError(0, 'Maximum retry attempts exceeded')
+        raise ProviderError(0, "Maximum retry attempts exceeded")
 
     async def _stream_iterator(self, response: httpx.Response) -> AsyncIterator[bytes]:
-        """Yield SSE ``bytes`` lines from a streaming Gemini response.
+        """Yield SSE ``bytes`` lines from a Gemini streaming response.
 
-        Gemini already returns ``data: {...}`` lines when ``alt=sse`` is used.
-        We normalise each line to the ``data: <payload>\n\n`` format expected by
-        the FastAPI ``StreamingResponse``.
+        Gemini streams raw JSON objects separated by newlines. We normalise each
+        line to the ``data: <json>\n\n`` format expected by the FastAPI gateway.
         """
         async for raw in response.aiter_bytes():
             if not raw:
                 continue
-            text = raw.decode('utf-8', errors='replace')
+            text = raw.decode("utf-8", errors="replace")
             for line in text.splitlines():
                 line = line.strip()
                 if not line:
                     continue
-                if line.startswith('data: '):
-                    line = line[6:]
-                yield f'data: {line}\n\n'.encode('utf-8')
+                # Remove any existing ``data: `` prefix.
+                if line.startswith("data:"):
+                    line = line[5:].lstrip()
+                yield f"data: {line}\n\n".encode("utf-8")
 
     async def chat_completions(
         self,
@@ -135,32 +134,11 @@ class GoogleGeminiProvider(BaseProvider):
     ) -> Any:
         """Send a chat‑completion request to Gemini.
 
-        Parameters
-        ----------
-        messages:
-            List of OpenAI‑style message dicts.
-        model:
-            Gemini model name, e.g. ``gemini-pro`` or ``gemini-pro-vision``.
-        stream:
-            When ``True`` the request uses the SSE streaming endpoint.
-        temperature:
-            Sampling temperature, passed through to Gemini's ``generationConfig``.
-        extra:
-            Optional provider‑specific fields that are merged into the request
-            payload.
+        The method normalises messages, builds the Gemini payload, and forwards
+        the request using ``_request``.
         """
+        # Normalise messages (kept for parity with other providers).
         _ = self.normalize_messages(messages)
-
-        contents = self._messages_to_contents(messages)
-
-        payload: Dict[str, Any] = {
-            'contents': contents,
-            'generationConfig': {
-                'temperature': temperature,
-            },
-        }
-        if extra:
-            payload.update(extra)
-
-        result = await self._request(model=model, payload=payload, stream=stream)
+        payload = self._prepare_payload(messages, model, stream, temperature, extra)
+        result = await self._request(model, payload, stream=stream)
         return result

@@ -101,7 +101,7 @@ def _get_provider_instance(provider_cfg: ProviderConfig):
     if provider_id == "mock":
         return MockProvider()
     if provider_id == "google":
-        return GoogleGeminiProvider()
+        return GoogleGeminiProvider(base_url=provider_cfg.base_url, api_key=api_key)
     raise ValueError(f"Unsupported provider_id '{provider_cfg.provider_id}'")
 
 @app.post("/v1/chat/completions")
