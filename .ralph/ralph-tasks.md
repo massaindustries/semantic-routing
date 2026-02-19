@@ -115,7 +115,7 @@
     - Wizard ripetibile: `my-model provider add`, `my-model model add`
     - `my-model init --non-interactive` (P1)
 
-- [ ] Implementare CLI con Typer (o Click)
+- [x] Implementare CLI con Typer (o Click)
   - Comandi MVP:
     - `my-model init`
     - `my-model serve`

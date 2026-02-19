@@ -86,6 +86,72 @@ def model_remove(
         typer.echo(f"Error removing model: {exc}", err=True)
         raise typer.Exit(code=1)
 
+# ===== Provider subcommands =====
+provider_app = typer.Typer()
+app.add_typer(provider_app, name="provider")
+
+@provider_app.command("add")
+def provider_add(
+    alias: str = typer.Option(..., "--alias", "-a", help="Workspace alias"),
+    provider_id: str = typer.Option(..., "--provider-id", "-p", help="Provider identifier"),
+    base_url: str = typer.Option(..., "--base-url", "-b", help="Base URL of the provider"),
+    api_key: str = typer.Option("", "--api-key", hide_input=True, help="API key (optional)"),
+):
+    """Add a provider to the workspace configuration."""
+    try:
+        config = _load_workspace(alias)
+        if any(p.provider_id == provider_id for p in config.providers):
+            typer.echo(f"Provider '{provider_id}' already exists.", err=True)
+            raise typer.Exit(code=1)
+        provider_cfg = ProviderConfig(
+            provider_id=provider_id,
+            base_url=base_url,
+            api_key=api_key if api_key else None,
+        )
+        config.providers.append(provider_cfg)
+        config.save()
+        typer.echo(f"Added provider '{provider_id}'.")
+    except Exception as exc:
+        typer.echo(f"Error adding provider: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+@provider_app.command("list")
+def provider_list(
+    alias: str = typer.Option(..., "--alias", "-a", help="Workspace alias")
+):
+    """List all providers in the workspace configuration."""
+    try:
+        config = _load_workspace(alias)
+        if not config.providers:
+            typer.echo("No providers registered.")
+            return
+        for p in config.providers:
+            key_display = "*****" if p.api_key else "(none)"
+            typer.echo(f"{p.provider_id}: base_url={p.base_url}, api_key={key_display}")
+    except Exception as exc:
+        typer.echo(f"Error listing providers: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+@provider_app.command("remove")
+def provider_remove(
+    provider_id: str,
+    alias: str = typer.Option(..., "--alias", "-a", help="Workspace alias")
+):
+    """Remove a provider from the workspace configuration."""
+    try:
+        config = _load_workspace(alias)
+        original_len = len(config.providers)
+        config.providers = [p for p in config.providers if p.provider_id != provider_id]
+        if len(config.providers) == original_len:
+            typer.echo(f"Provider '{provider_id}' not found.", err=True)
+            raise typer.Exit(code=1)
+        # Also remove any models that belong to this provider
+        config.models = [m for m in config.models if m.provider_id != provider_id]
+        config.save()
+        typer.echo(f"Removed provider '{provider_id}'.")
+    except Exception as exc:
+        typer.echo(f"Error removing provider: {exc}", err=True)
+        raise typer.Exit(code=1)
 # ===== Init wizard =====
 @app.command()
 def init():
@@ -136,7 +202,61 @@ def init():
     typer.echo(f"Workspace '{alias}' created at {workspace._workspace_dir}")
     typer.echo(f"Run 'my-model serve --alias {alias}' to start the gateway.")
 
+# ===== Serve command =====
+@app.command()
+def serve(
+    alias: str = typer.Option(..., "--alias", "-a", help="Workspace alias"),
+    host: str = typer.Option(None, "--host", help="Host to bind (default from config)"),
+    port: int = typer.Option(None, "--port", help="Port to bind (default from config)"),
+    log_level: str = typer.Option(None, "--log-level", help="Log level (default from config)"),
+):
+    """Start the local FastAPI gateway server."""
+    import os
+    try:
+        config = WorkspaceConfig.load(alias)
+    except Exception as exc:
+        typer.echo(f"Error loading workspace config: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    # Set environment variables for core
+    os.environ["VLLM_SR_URL"] = config.router.vsr_url
+    # Set REGOLO_API_KEY to the first provider's key if any
+    if config.providers:
+        first_key = config.providers[0].api_key.get_secret_value() if config.providers[0].api_key else ""
+        os.environ["REGOLO_API_KEY"] = first_key
+    else:
+        os.environ["REGOLO_API_KEY"] = ""
+
+    # Resolve host/port/log_level
+    host = host or config.gateway.host
+    port = port or config.gateway.port
+    log_level = log_level or config.gateway.log_level
+
+    # Run the FastAPI app from core.py
+    import uvicorn
+    import core
+    uvicorn.run(core.app, host=host, port=port, log_level=log_level)
+
+# ===== Status command =====
+@app.command()
+def status(
+    alias: str = typer.Option(..., "--alias", "-a", help="Workspace alias")
+):
+    """Show workspace configuration (masked) and basic checks."""
+    try:
+        config = WorkspaceConfig.load(alias)
+    except Exception as exc:
+        typer.echo(f"Error loading config: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    import json
+    typer.echo("Workspace configuration:")
+    typer.echo(json.dumps(config.masked_dict(), indent=2))
+
 # ===== Entry point =====
+def main():
+    """Entry point for the CLI when invoked via console script."""
+    app()
 def main():
     """Entry point for the CLI when invoked via console script."""
     app()
