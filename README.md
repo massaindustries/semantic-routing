@@ -41,6 +41,42 @@ curl -X POST http://localhost:8888/v1/chat/completions \
   -d '{"model":"MoM","messages":[{"role":"user","content":"Hello"}]}'
 ```
 
+## Quickstart for my-model
+
+### Install
+
+```bash
+pip install -e .
+```
+
+### Initialize
+
+```bash
+my-model init
+# Follow wizard to create alias <ALIAS>
+```
+
+### Run gateway
+
+```bash
+my-model serve --alias <ALIAS> --host 127.0.0.1 --port 8000
+```
+
+### Test (non-stream)
+
+```bash
+curl -s http://127.0.0.1:8000/v1/models
+curl -s http://127.0.0.1:8000/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"<ALIAS>","messages":[{"role":"user","content":"ciao"}]}'
+```
+
+### Test (stream)
+
+```bash
+curl -N http://127.0.0.1:8000/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"<ALIAS>","stream":true,"messages":[{"role":"user","content":"scrivi 5 parole"}]}'
+```
+
+![quickstart screenshot](docs/quickstart.png)
+
 ## Configuration
 
 - **vLLM SR Config**: `docker/config/config.yaml`

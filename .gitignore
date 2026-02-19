@@ -1,8 +1,9 @@
 .venv/
 .env
-use_case/
+# use_case/
 tests/
 public/
 opencode.json
 install-docker.sh
 __pycache__/
+apps/

@@ -1,0 +1,8 @@
+{
+  "hasCompletedOnboarding": true,
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://213.171.186.210:8000/v1",
+    "ANTHROPIC_AUTH_TOKEN": "sk-NklmaM1W15f-FWYh8Li-mA",
+    "ANTHROPIC_MODEL": "qwen3-coder-next"
+  }
+}
