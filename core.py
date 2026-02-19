@@ -102,8 +102,6 @@ async def call_vllm_sr(messages: list) -> dict:
         "model": DEFAULT_VLLM_MODEL,
         "messages": messages,
         "temperature": 0.0,
-        "max_tokens": 1,
-        "stream": False
     }
     
     try:
@@ -337,11 +335,15 @@ async def chat_completions(request: Request):
                     selected = vllm_result.get("model", "")
                     logger.info(f"[CHAT] Audio routed to: {selected}")
                     
-                    return StreamingResponse(
-                        stream_llm_response([{"role": "user", "content": transcription}], selected),
-                        media_type="text/event-stream",
-                        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
-                    )
+                    if is_stream:
+                        return StreamingResponse(
+                            stream_llm_response([{"role": "user", "content": transcription}], selected),
+                            media_type="text/event-stream",
+                            headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+                        )
+                    else:
+                        result = await call_llm([{"role": "user", "content": transcription}], selected)
+                        return JSONResponse(content=result)
         
         if filter_result["image"] and filter_result["audio"] and not filter_result["text"]:
             logger.info("[CHAT] Image + Audio request")
@@ -362,7 +364,21 @@ async def chat_completions(request: Request):
             
             combined = f"Audio: {audio_transcription}\n\nImage: {ocr_text}"
             vllm_result = await call_vllm_sr([{"role": "user", "content": combined}])
-            return JSONResponse(content=vllm_result)
+            if vllm_result.get("error"):
+                return JSONResponse(content=vllm_result)
+            
+            selected = vllm_result.get("model", "")
+            logger.info(f"[CHAT] Image+Audio routed to: {selected}")
+            
+            if is_stream:
+                return StreamingResponse(
+                    stream_llm_response([{"role": "user", "content": combined}], selected),
+                    media_type="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+                )
+            else:
+                result = await call_llm([{"role": "user", "content": combined}], selected)
+                return JSONResponse(content=result)
         
         if filter_result["text"] and filter_result["audio"] and not filter_result["image"]:
             logger.info("[CHAT] Text + Audio request")
@@ -380,7 +396,21 @@ async def chat_completions(request: Request):
             
             combined = f"Audio: {audio_transcription}\n\nText: {text_content}"
             vllm_result = await call_vllm_sr([{"role": "user", "content": combined}])
-            return JSONResponse(content=vllm_result)
+            if vllm_result.get("error"):
+                return JSONResponse(content=vllm_result)
+            
+            selected = vllm_result.get("model", "")
+            logger.info(f"[CHAT] Text+Audio routed to: {selected}")
+            
+            if is_stream:
+                return StreamingResponse(
+                    stream_llm_response([{"role": "user", "content": combined}], selected),
+                    media_type="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+                )
+            else:
+                result = await call_llm([{"role": "user", "content": combined}], selected)
+                return JSONResponse(content=result)
         
         if filter_result["text"] and filter_result["image"] and filter_result["audio"]:
             logger.info("[CHAT] Text + Image + Audio request")
@@ -403,7 +433,21 @@ async def chat_completions(request: Request):
             
             combined = f"Audio: {audio_transcription}\n\nImage: {ocr_text}\n\nText: {text_content}"
             vllm_result = await call_vllm_sr([{"role": "user", "content": combined}])
-            return JSONResponse(content=vllm_result)
+            if vllm_result.get("error"):
+                return JSONResponse(content=vllm_result)
+            
+            selected = vllm_result.get("model", "")
+            logger.info(f"[CHAT] Text+Image+Audio routed to: {selected}")
+            
+            if is_stream:
+                return StreamingResponse(
+                    stream_llm_response([{"role": "user", "content": combined}], selected),
+                    media_type="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+                )
+            else:
+                result = await call_llm([{"role": "user", "content": combined}], selected)
+                return JSONResponse(content=result)
         
         if filter_result["text"] and not filter_result["image"] and not filter_result["audio"]:
             logger.info("[CHAT] Text-only request")
@@ -415,11 +459,15 @@ async def chat_completions(request: Request):
             selected_model = vllm_result.get("model", "")
             logger.info(f"[CHAT] Text routed to: {selected_model}")
             
-            return StreamingResponse(
-                stream_llm_response(normalized_messages, selected_model),
-                media_type="text/event-stream",
-                headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
-            )
+            if is_stream:
+                return StreamingResponse(
+                    stream_llm_response(normalized_messages, selected_model),
+                    media_type="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+                )
+            else:
+                result = await call_llm(normalized_messages, selected_model)
+                return JSONResponse(content=result)
         
         if filter_result["image"] and filter_result["text"] and not filter_result["audio"]:
             logger.info("[CHAT] Image + Text request")
@@ -441,11 +489,8 @@ async def chat_completions(request: Request):
                             headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
                         )
                     else:
-                        return StreamingResponse(
-                            stream_llm_response([{"role": "user", "content": payload_content}], "qwen3-vl-32b"),
-                            media_type="text/event-stream",
-                            headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
-                        )
+                        result = await call_llm([{"role": "user", "content": payload_content}], "qwen3-vl-32b")
+                        return JSONResponse(content=result)
         
         if filter_result["image"] and not filter_result["text"] and not filter_result["audio"]:
             logger.info("[CHAT] Image-only request")
@@ -470,7 +515,12 @@ async def chat_completions(request: Request):
                             )
                         else:
                             vllm_result = await call_vllm_sr([{"role": "user", "content": ocr_text}])
-                            return JSONResponse(content=vllm_result)
+                            if vllm_result.get("error"):
+                                return JSONResponse(content=vllm_result)
+                            selected = vllm_result.get("model", "")
+                            logger.info(f"[CHAT] OCR routed to: {selected}")
+                            result = await call_llm([{"role": "user", "content": ocr_text}], selected)
+                            return JSONResponse(content=result)
                     
                     if is_stream:
                         return StreamingResponse(
