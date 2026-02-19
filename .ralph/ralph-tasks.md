@@ -87,7 +87,7 @@
   - Acceptance:
     - Dati persistenti nel config workspace
 
-- [ ] Implementare client Router (VSR) come “decision engine”
+- [x] Implementare client Router (VSR) come “decision engine"
   - Input:
     - prompt/messages normalizzati
     - “virtual model” fisso lato router (es. `MoM` o `auto`) se serve
