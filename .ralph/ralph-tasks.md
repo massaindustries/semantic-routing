@@ -45,7 +45,7 @@
     - `my-model config show` maschera le API key
     - `my-model config validate` segnala errori
 
-- [ ] Definire interfaccia provider (adapter) “OpenAI Chat Completions”
+- [x] Definire interfaccia provider (adapter) “OpenAI Chat Completions”
   - Contratto minimo:
     - `chat_completions(messages, model, stream, temperature, extra) -> JSON | AsyncIterator[bytes]`
     - Normalizzazione messaggi (text-only MVP)
