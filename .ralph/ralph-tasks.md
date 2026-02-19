@@ -14,7 +14,7 @@
   - Acceptance:
     - README con quickstart riproducibile (curl) + screenshot output
 
-- [ ] Scelta naming e struttura repo
+- [x] Scelta naming e struttura repo
   - Decidere:
     - Nome package python: `my_model` (import) e CLI: `my-model` (entrypoint)
     - Directory:

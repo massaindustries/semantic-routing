@@ -1,0 +1,31 @@
+[project]
+name = "my-model"
+version = "0.1.0"
+description = "CLI and local gateway for OpenAI-compatible LLMs with semantic routing"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Your Name", email = "you@example.com"}]
+license = {text = "MIT"}
+keywords = ["LLM", "OpenAI", "gateway", "CLI", "semantic routing"]
+
+# Define runtime dependencies
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.23.0",
+    "httpx>=0.27.0",
+    "typer>=0.9.0",
+    "pydantic>=2.5.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+    "httpx>=0.27.0",
+]
+
+[project.scripts]
+my-model = "my_model.cli.main:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
