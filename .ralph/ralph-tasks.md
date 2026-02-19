@@ -232,7 +232,7 @@
   - Acceptance:
     - aggiungibile da wizard e selezionabile dal routing
 
-- [ ] Estensione P1: provider Google (Gemini)
+- [x] Estensione P1: provider Google (Gemini)
   - Adapter Gemini + mapping a chat completions
   - Acceptance:
     - aggiungibile da wizard e selezionabile dal routing
