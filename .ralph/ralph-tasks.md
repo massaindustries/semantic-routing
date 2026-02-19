@@ -237,7 +237,7 @@
   - Acceptance:
     - aggiungibile da wizard e selezionabile dal routing
 
-- [ ] Estensione P1: provider xAI
+- [x] Estensione P1: provider xAI
   - Verificare modalità (OpenAI-compatible o custom)
   - Adapter coerente
   - Acceptance:

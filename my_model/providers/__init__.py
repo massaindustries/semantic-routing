@@ -12,5 +12,6 @@ from .openai import OpenAIProvider
 from .regolo import RegoloProvider
 from .anthropic import AnthropicProvider
 from .google import GoogleGeminiProvider
+from .xai import XAIProvider
 
-__all__ = ["BaseProvider", "ProviderError", "MockProvider", "OpenAIProvider", "RegoloProvider", "AnthropicProvider", "GoogleGeminiProvider"]
+__all__ = ["BaseProvider", "ProviderError", "MockProvider", "OpenAIProvider", "RegoloProvider", "AnthropicProvider", "GoogleGeminiProvider", "XAIProvider"]
