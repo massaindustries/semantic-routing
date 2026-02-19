@@ -102,7 +102,7 @@
   - Acceptance:
     - Unit test: header parsing + fallback path
 
-- [ ] Progettare UX CLI: flusso “init” come da processo utente
+- [x] Progettare UX CLI: flusso “init” come da processo utente
   - `my-model init`
     1) chiede nome alias (es. `brick`, `francesco-gw`, ecc.)
     2) chiede router config (VSR URL + modalità)

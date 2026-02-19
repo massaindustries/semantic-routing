@@ -1,7 +1,7 @@
 import typer
 from typing import List, Optional
 
-from my_model.config import WorkspaceConfig, ModelConfig
+from my_model.config import WorkspaceConfig, ModelConfig, RouterConfig, ProviderConfig
 
 app = typer.Typer()
 model_app = typer.Typer()
@@ -16,6 +16,7 @@ def hello(name: str = "world"):
     """Simple hello command for testing the CLI entrypoint."""
     typer.echo(f"Hello, {name}!")
 
+# ===== Model subcommands (unchanged) =====
 @model_app.command("add")
 def model_add(
     alias: str = typer.Option(..., "--alias", "-a", help="Workspace alias"),
@@ -77,7 +78,7 @@ def model_remove(
         original_len = len(config.models)
         config.models = [m for m in config.models if m.backend_id != backend_id]
         if len(config.models) == original_len:
-            typer.echo(f"No model with backend_id '{backend_id}' found.", err=True)
+            typer.echo(f"No model with backend_id '{backend_id}' not found.", err=True)
             raise typer.Exit(code=1)
         config.save()
         typer.echo(f"Removed model '{backend_id}'.")
@@ -85,21 +86,61 @@ def model_remove(
         typer.echo(f"Error removing model: {exc}", err=True)
         raise typer.Exit(code=1)
 
-if __name__ == "__main__":
-    app()
+# ===== Init wizard =====
+@app.command()
+def init():
+    """Interactive wizard to create a new workspace (virtual model)."""
+    # Alias
+    alias = typer.prompt("Enter a name for the virtual model (alias)", default="my-alias")
 
+    # Router configuration
+    default_vsr = "http://localhost:8888/v1/chat/completions"
+    vsr_url = typer.prompt("VSR URL", default=default_vsr)
+    mode = typer.prompt("VSR mode (headers/json)", default="headers")
+    router_cfg = RouterConfig(vsr_url=vsr_url, mode=mode)
 
-app = typer.Typer()
+    # Initialize workspace config
+    workspace = WorkspaceConfig(alias=alias, router=router_cfg)
 
+    # Provider wizard loop
+    while True:
+        if not typer.confirm("Add a provider?", default=True):
+            break
+        # Choose provider id
+        provider_options = ["openai", "regolo", "anthropic", "google", "xai", "openai-compatible"]
+        provider_id = typer.prompt(f"Provider ID ({'/'.join(provider_options)})", default="openai")
+        # Determine base URL defaults
+        default_base = (
+            "https://api.openai.com" if provider_id == "openai" else
+            "https://api.regolo.ai/v1" if provider_id == "regolo" else ""
+        )
+        base_url = typer.prompt("Base URL", default=default_base) if default_base else typer.prompt("Base URL")
+        api_key = typer.prompt("API key (leave blank if none)", hide_input=True, default="")
+        api_key_secret = api_key if api_key else None
+        provider_cfg = ProviderConfig(provider_id=provider_id, base_url=base_url, api_key=api_key_secret)
+        workspace.providers.append(provider_cfg)
 
+        # Model addition for this provider
+        while True:
+            if not typer.confirm(f"Add a backend model for provider '{provider_id}'?", default=False):
+                break
+            model_id = typer.prompt("Model ID (e.g., gpt-4o-mini)")
+            tags_raw = typer.prompt("Tags (comma‑separated, optional)", default="")
+            tags = [t.strip() for t in tags_raw.split(',')] if tags_raw else []
+            backend_id = f"{provider_id}-{model_id}"
+            model_cfg = ModelConfig(backend_id=backend_id, provider_id=provider_id, model_id=model_id, tags=tags)
+            workspace.models.append(model_cfg)
+
+    # Save workspace configuration
+    workspace.save()
+    typer.echo(f"Workspace '{alias}' created at {workspace._workspace_dir}")
+    typer.echo(f"Run 'my-model serve --alias {alias}' to start the gateway.")
+
+# ===== Entry point =====
 def main():
     """Entry point for the CLI when invoked via console script."""
     app()
 
-@app.command()
-def hello(name: str = "world"):
-    """Simple hello command for testing the CLI entrypoint."""
-    typer.echo(f"Hello, {name}!")
-
 if __name__ == "__main__":
     app()
+
