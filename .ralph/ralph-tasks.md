@@ -28,7 +28,7 @@
   - Acceptance:
     - Repo bootstrappato con `pyproject.toml`, lint/test config, `__init__.py`
 
-- [ ] Definire schema config (Pydantic) e formato di persistenza
+- [x] Definire schema config (Pydantic) e formato di persistenza
   - File config “workspace” (per modello virtuale):
     - Path: `~/.my-model/<ALIAS>/config.yaml` (o json) + override via env
     - Contenuti minimi:
