@@ -65,7 +65,7 @@
   - Acceptance:
     - Test: mock server -> verify streaming e non-stream
 
-- [ ] Implementare provider: Regolo (come OpenAI-compatible specializzato)
+- [x] Implementare provider: Regolo (come OpenAI-compatible specializzato)
   - Default:
     - `base_url=https://api.regolo.ai/v1`
   - Extra (P1, non MVP):

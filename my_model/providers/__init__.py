@@ -9,5 +9,6 @@ be used in tests without performing any network requests.
 from .base import BaseProvider, ProviderError
 from .mock import MockProvider
 from .openai import OpenAIProvider
+from .regolo import RegoloProvider
 
-__all__ = ["BaseProvider", "ProviderError", "MockProvider", "OpenAIProvider"]
+__all__ = ["BaseProvider", "ProviderError", "MockProvider", "OpenAIProvider", "RegoloProvider"]
