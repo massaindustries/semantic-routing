@@ -207,7 +207,7 @@
   - Acceptance:
     - Un utente “fresh” riesce a farlo partire senza leggere codice
 
-- [ ] Test suite minima (CI-ready)
+- [x] Test suite minima (CI-ready)
   - Unit:
     - config validation
     - VSR header parsing
