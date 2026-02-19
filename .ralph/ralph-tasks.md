@@ -226,7 +226,7 @@
   - Acceptance:
     - esempio funzionante documentato (anche solo mock router)
 
-- [ ] Estensione P1: provider Anthropic
+- [x] Estensione P1: provider Anthropic
   - Implementare adapter (Messages API) e mapping OpenAI<->Anthropic
   - Streaming conversione (se serve)
   - Acceptance:

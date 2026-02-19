@@ -21,7 +21,7 @@ from typing import Optional, AsyncIterator
 
 from my_model.config import WorkspaceConfig, ModelConfig, ProviderConfig
 from my_model.router.client import select_backend_id
-from my_model.providers import OpenAIProvider, RegoloProvider, MockProvider, BaseProvider
+from my_model.providers import OpenAIProvider, RegoloProvider, MockProvider, AnthropicProvider, BaseProvider
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +96,8 @@ def _get_provider_instance(provider_cfg: ProviderConfig):
         return OpenAIProvider(base_url=provider_cfg.base_url, api_key=api_key)
     if provider_id == "regolo":
         return RegoloProvider(base_url=provider_cfg.base_url, api_key=api_key)
+    if provider_id == "anthropic":
+        return AnthropicProvider(base_url=provider_cfg.base_url, api_key=api_key)
     if provider_id == "mock":
         return MockProvider()
     raise ValueError(f"Unsupported provider_id '{provider_cfg.provider_id}'")

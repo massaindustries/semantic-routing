@@ -10,5 +10,6 @@ from .base import BaseProvider, ProviderError
 from .mock import MockProvider
 from .openai import OpenAIProvider
 from .regolo import RegoloProvider
+from .anthropic import AnthropicProvider
 
-__all__ = ["BaseProvider", "ProviderError", "MockProvider", "OpenAIProvider", "RegoloProvider"]
+__all__ = ["BaseProvider", "ProviderError", "MockProvider", "OpenAIProvider", "RegoloProvider", "AnthropicProvider"]
