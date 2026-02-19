@@ -5,7 +5,7 @@ description = "CLI and local gateway for OpenAI-compatible LLMs with semantic ro
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "Your Name", email = "you@example.com"}]
-license = {text = "MIT"}
+license = "MIT"
 keywords = ["LLM", "OpenAI", "gateway", "CLI", "semantic routing"]
 
 # Define runtime dependencies
@@ -29,3 +29,6 @@ my-model = "my_model.cli.main:main"
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["my_model"]

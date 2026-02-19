@@ -1,0 +1,119 @@
+Metadata-Version: 2.4
+Name: my-model
+Version: 0.1.0
+Summary: CLI and local gateway for OpenAI-compatible LLMs with semantic routing
+Author-email: Your Name <you@example.com>
+License-Expression: MIT
+Keywords: LLM,OpenAI,gateway,CLI,semantic routing
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: fastapi>=0.109.0
+Requires-Dist: uvicorn[standard]>=0.23.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: typer>=0.9.0
+Requires-Dist: pydantic>=2.5.0
+Provides-Extra: test
+Requires-Dist: pytest>=8.0; extra == "test"
+Requires-Dist: httpx>=0.27.0; extra == "test"
+Dynamic: license-file
+
+# Regolo Semantic Routing
+
+A system for intelligent routing to Regolo API endpoints with vLLM Semantic Router.
+
+## Architecture
+
+- **Container 1**: Filter Router (`core.py`) - Port 8000
+  - Analyzes modality (text/image/audio)
+  - Forwards text-only requests to vLLM SR
+
+- **Container 2**: vLLM Semantic Router - Port 8888
+  - Routing based on keywords, embedding, domain signals
+  - Routes text queries to appropriate Regolo model
+
+## Quick Start
+
+```bash
+# 1. Install Docker and setup
+./install-docker.sh
+
+# 2. Set environment variables
+echo "REGOLO_API_KEY=your_key" > .env
+echo "HF_TOKEN=your_hf_token" >> .env
+
+# 3. Start services
+cd docker
+docker compose up -d
+```
+
+## Test Endpoint
+
+```bash
+# Test filter router (port 8000)
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"MoM","messages":[{"role":"user","content":"Hello"}]}'
+
+# Test vLLM SR (port 8888)
+curl -X POST http://localhost:8888/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"MoM","messages":[{"role":"user","content":"Hello"}]}'
+```
+
+## Quickstart for my-model
+
+### Install
+
+```bash
+pip install -e .
+```
+
+### Initialize
+
+```bash
+my-model init
+# Follow wizard to create alias <ALIAS>
+```
+
+### Run gateway
+
+```bash
+my-model serve --alias <ALIAS> --host 127.0.0.1 --port 8000
+```
+
+### Test (non-stream)
+
+```bash
+curl -s http://127.0.0.1:8000/v1/models
+curl -s http://127.0.0.1:8000/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"<ALIAS>","messages":[{"role":"user","content":"ciao"}]}'
+```
+
+### Test (stream)
+
+```bash
+curl -N http://127.0.0.1:8000/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"<ALIAS>","stream":true,"messages":[{"role":"user","content":"scrivi 5 parole"}]}'
+```
+
+![quickstart screenshot](docs/quickstart.png)
+
+## Configuration
+
+- **vLLM SR Config**: `docker/config/config.yaml`
+- **Models**: `vLLMsr_model.py`
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `core.py` | Filter router (modality detection + forwarding) |
+| `vLLMsr_model.py` | Model definitions for Regolo |
+| `docker/config/config.yaml` | vLLM SR routing configuration |
+| `install-docker.sh` | Ubuntu 24.04 Docker setup script |
+
+## Requirements
+
+- **Ubuntu 24.04 LTS**
+- **8 GB RAM minimum** (16 GB recommended)
+- **Docker & Docker Compose**
+

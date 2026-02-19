@@ -186,7 +186,7 @@
   - Acceptance:
     - output deterministico e utile (exit code != 0 se fail)
 
-- [ ] Packaging e distribuzione
+- [x] Packaging e distribuzione
   - `pyproject.toml` con entrypoints console_script
   - versioning semver
   - build: `python -m build`
