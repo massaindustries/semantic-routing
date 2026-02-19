@@ -1,6 +1,7 @@
 import typer
 import asyncio
 from my_model.router.client import VSRClient
+from my_model.gateway import set_safety_enabled, _set_audit_log_path
 from typing import List, Optional
 
 from my_model.config import WorkspaceConfig, ModelConfig, RouterConfig, ProviderConfig
@@ -213,6 +214,7 @@ def serve(
     host: str = typer.Option(None, "--host", help="Host to bind (default from config)"),
     port: int = typer.Option(None, "--port", help="Port to bind (default from config)"),
     log_level: str = typer.Option(None, "--log-level", help="Log level (default from config)"),
+    enable_safety: bool = typer.Option(False, "--enable-safety", help="Enable safety guardrails (content filtering, audit logging)."),
 ):
     """Start the local FastAPI gateway server."""
     import os
@@ -236,6 +238,12 @@ def serve(
     port = port or config.gateway.port
     log_level = log_level or config.gateway.log_level
 
+    # Safety guardrails
+    if enable_safety:
+        set_safety_enabled(True)
+        # Configure audit log file within the workspace directory
+        audit_path = config._workspace_dir / "audit.log"
+        _set_audit_log_path(str(audit_path))
     # Run the FastAPI app from core.py
     import uvicorn
     import my_model.gateway as gateway

@@ -167,6 +167,8 @@ def set_workspace_config(config: WorkspaceConfig) -> None:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Configure audit log path
+    _set_audit_log_path(str(config._workspace_dir / "audit.log"))
 def _get_provider_instance(provider_cfg: ProviderConfig):
     """Instantiate a provider based on its configuration.
 
@@ -204,11 +206,11 @@ async def chat_completions(request: Request, x_selected_model: Optional[str] = H
     # Detect modality (audio, image, text)
     modality = detect_modality(messages)
     request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
-if _safety_enabled:
-    reason = _detect_prohibited_content(messages)
-    if reason:
-        _log_audit(request_id, messages, True, reason)
-        raise HTTPException(status_code=400, detail=f"Request blocked by safety policy: {reason}")
+    if _safety_enabled:
+        reason = _detect_prohibited_content(messages)
+        if reason:
+            _log_audit(request_id, messages, True, reason)
+            raise HTTPException(status_code=400, detail=f"Request blocked by safety policy: {reason}")
     router_start = time.monotonic()
     # Header override takes precedence over any multimodal handling.
     if x_selected_model:
@@ -271,6 +273,7 @@ if _safety_enabled:
     result = await provider.chat_completions(normalized, model=model_cfg.model_id, stream=stream)
     provider_elapsed = time.monotonic() - provider_start
     logger.info(f"[Gateway] [{request_id}] Provider '{provider_cfg.provider_id}' latency: {provider_elapsed:.3f}s")
+    _log_audit(request_id, messages, False, None)
     if stream:
         # Provider returns an async iterator of SSE bytes
         return StreamingResponse(_wrap_sse_stream(result), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "Connection": "keep-alive"})  # type: ignore[arg-type]
