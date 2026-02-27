@@ -67,7 +67,11 @@ func (s *Server) handleBrickRequest(w http.ResponseWriter, r *http.Request) {
 		}
 		logging.Infof("Brick: x-selected-model=%s, bypassing routing", selectedModel)
 		rewrittenBody := rewriteModelInBody(body, selectedModel)
-		result := s.buildRegoloForwardResult(rewrittenBody, cfg, req.Stream)
+		clientKey := extractClientAPIKey(r)
+		if clientKey == "" {
+			clientKey = resolveRegoloAPIKey(cfg)
+		}
+		result := s.buildRegoloForwardResultWithKey(rewrittenBody, cfg, req.Stream, clientKey)
 		s.forwardToBackend(w, r, result)
 		return
 	}
@@ -79,8 +83,15 @@ func (s *Server) handleBrickRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Resolve API key for Regolo
-	apiKey := resolveRegoloAPIKey(cfg)
+	// Resolve API key: prefer client's Authorization header, fallback to config/env
+	apiKey := extractClientAPIKey(r)
+	if apiKey == "" {
+		apiKey = resolveRegoloAPIKey(cfg)
+	}
+	if apiKey == "" {
+		writeError(w, http.StatusUnauthorized, "missing API key: provide Authorization Bearer token")
+		return
+	}
 
 	// Multimodal preprocessing
 	brickCfg := &cfg.Brick
@@ -163,14 +174,21 @@ func (s *Server) handleBrickRequest(w http.ResponseWriter, r *http.Request) {
 	// The pipeline may set ForwardEndpoint in Envoy style (e.g. "api.regolo.ai:443"
 	// without schema), which forwardToBackend would turn into http:// on a TLS port.
 	// Always use buildRegoloForwardResult to get correct schema and auth header.
-	regoloResult := s.buildRegoloForwardResult(result.ForwardBody, cfg, req.Stream)
+	regoloResult := s.buildRegoloForwardResultWithKey(result.ForwardBody, cfg, req.Stream, apiKey)
 	regoloResult.ForwardHeaders = mergeMaps(regoloResult.ForwardHeaders, result.ForwardHeaders)
 	s.forwardToBackend(w, r, regoloResult)
 }
 
 // buildRegoloForwardResult creates a RoutingResult for forwarding to Regolo API.
+// Uses the server-side API key from config/env.
 func (s *Server) buildRegoloForwardResult(body []byte, cfg *config.RouterConfig, isStreaming bool) *RoutingResult {
-	baseURL, apiKey := getRegoloProviderInfo(cfg)
+	_, apiKey := getRegoloProviderInfo(cfg)
+	return s.buildRegoloForwardResultWithKey(body, cfg, isStreaming, apiKey)
+}
+
+// buildRegoloForwardResultWithKey creates a RoutingResult using the provided API key.
+func (s *Server) buildRegoloForwardResultWithKey(body []byte, cfg *config.RouterConfig, isStreaming bool, apiKey string) *RoutingResult {
+	baseURL, _ := getRegoloProviderInfo(cfg)
 
 	return &RoutingResult{
 		ForwardBody:     body,
@@ -298,6 +316,19 @@ func extractPath(rawURL string) string {
 		path = path[:len(path)-1]
 	}
 	return path
+}
+
+// extractClientAPIKey extracts the Bearer token from the client's Authorization header.
+func extractClientAPIKey(r *http.Request) string {
+	auth := r.Header.Get("Authorization")
+	if auth == "" {
+		return ""
+	}
+	const prefix = "Bearer "
+	if strings.HasPrefix(auth, prefix) {
+		return strings.TrimSpace(auth[len(prefix):])
+	}
+	return ""
 }
 
 // mergeMaps merges src into dst, returning dst. src values don't overwrite existing dst values.
