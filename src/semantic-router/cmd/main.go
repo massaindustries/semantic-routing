@@ -70,21 +70,20 @@ func main() {
 		logging.Fatalf("Invalid brick configuration: %v", err)
 	}
 
-	// When brick is enabled, ensure Regolo API key is available.
-	// Without it, all forwarded requests will fail with auth errors.
+	// When brick is enabled, warn if no server-side API key is configured.
+	// The gateway will use the client's Authorization header as primary source.
 	if cfg.Brick.Enabled {
 		hasAPIKey := false
 		if cfg.Providers != nil {
 			if p, ok := cfg.Providers["regoloai"]; ok && p != nil && p.APIKey != "" {
-				// Check the key isn't still an unresolved env var placeholder
 				if !strings.HasPrefix(p.APIKey, "${") {
 					hasAPIKey = true
 				}
 			}
 		}
 		if !hasAPIKey && os.Getenv("REGOLO_API_KEY") == "" {
-			logging.Fatalf("Brick mode enabled but REGOLO_API_KEY is not set. " +
-				"Set the REGOLO_API_KEY environment variable or configure providers.regoloai.api_key in config.")
+			logging.Warnf("Brick mode: no server-side REGOLO_API_KEY configured. " +
+				"API key must be provided by clients via Authorization header.")
 		}
 	}
 
