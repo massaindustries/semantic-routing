@@ -20,7 +20,23 @@ set -eo pipefail
 # Configuration
 ##############################################################################
 
-LM_EVAL="/home/rdseeweb/regolo-semantic-routing/.venv/bin/lm_eval"
+# Find lm_eval: env override > PATH > common venv locations
+LM_EVAL="${LM_EVAL:-$(command -v lm_eval 2>/dev/null || true)}"
+if [[ -z "${LM_EVAL}" ]]; then
+    for candidate in \
+        "${HOME}/.venv/bin/lm_eval" \
+        "${HOME}/regolo-semantic-routing/.venv/bin/lm_eval" \
+        "/home/rdseeweb/regolo-semantic-routing/.venv/bin/lm_eval"; do
+        if [[ -x "${candidate}" ]]; then
+            LM_EVAL="${candidate}"
+            break
+        fi
+    done
+fi
+if [[ -z "${LM_EVAL}" || ! -x "${LM_EVAL}" ]]; then
+    echo "ERROR: lm_eval not found. Install it or set LM_EVAL=/path/to/lm_eval"
+    exit 1
+fi
 EVALS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOGS_DIR="${EVALS_DIR}/logs"
 DATE=$(date +%Y-%m-%d)
@@ -298,6 +314,7 @@ echo " Date:       ${DATE}"
 echo " Phase:      ${PHASE}"
 echo " Dry run:    ${DRY_RUN}"
 echo " Only model: ${ONLY_MODEL:-all}"
+echo " lm_eval:    ${LM_EVAL}"
 echo " Brick URL:  ${BRICK_URL}"
 echo " Evals dir:  ${EVALS_DIR}"
 echo "========================================"
