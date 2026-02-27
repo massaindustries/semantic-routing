@@ -57,10 +57,6 @@ model_config:
     preferred_endpoints: ["regolo"]
     param_size: "120b"
     reasoning_family: "qwen3"
-  deepseek-r1-70b:
-    preferred_endpoints: ["regolo"]
-    param_size: "70b"
-    reasoning_family: "deepseek"
   qwen3-coder-next:
     preferred_endpoints: ["regolo"]
     param_size: "32b"
@@ -76,9 +72,6 @@ model_config:
 
 # ─── Reasoning Families ──────────────────────────────────────
 reasoning_families:
-  deepseek:
-    type: "chat_template_kwargs"
-    parameter: "thinking"
   qwen3:
     type: "chat_template_kwargs"
     parameter: "enable_thinking"
@@ -311,7 +304,7 @@ decisions:
         - type: "keyword"
           name: "expert_keywords"
     modelRefs:
-      - model: "deepseek-r1-70b"
+      - model: "gpt-oss-120b"
         use_reasoning: true
 
   - name: "default-fallback"
