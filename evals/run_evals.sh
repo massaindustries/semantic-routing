@@ -32,14 +32,13 @@ BRICK_URL="http://213.171.186.210:8000/v1/chat/completions"
 REGOLO_URL="https://api.regolo.ai/v1/chat/completions"
 
 # Parallel arrays: index 0 = brick, 1-8 = individual models
-SHORT_NAMES=(brick llama70b gptoss120b gptoss20b deepseek70b mistral32 qwen3coder qwen3_8b gemma27b)
-MODELS=(brick Llama-3.3-70B-Instruct gpt-oss-120b gpt-oss-20b deepseek-r1-70b mistral-small3.2 qwen3-coder-next Qwen3-8B gemma-3-27b-it)
+SHORT_NAMES=(brick llama70b gptoss120b gptoss20b mistral32 qwen3coder qwen3_8b gemma27b)
+MODELS=(brick Llama-3.3-70B-Instruct gpt-oss-120b gpt-oss-20b mistral-small3.2 qwen3-coder-next Qwen3-8B gemma-3-27b-it)
 TOKENIZERS=(
     meta-llama/Llama-3.3-70B-Instruct
     meta-llama/Llama-3.3-70B-Instruct
     Qwen/QwQ-32B
     Qwen/Qwen3-32B
-    deepseek-ai/DeepSeek-R1-Distill-Llama-70B
     mistralai/Mistral-Small-3.1-24B-Instruct-2503
     Qwen/Qwen3-235B-A22B
     Qwen/Qwen3-8B
@@ -267,8 +266,8 @@ phase3() {
 
     export HF_ALLOW_CODE_EVAL=1
 
-    # Code eval models: brick (0), llama70b (1), qwen3coder (6)
-    local code_indices=(0 1 6)
+    # Code eval models: brick (0), llama70b (1), qwen3coder (5)
+    local code_indices=(0 1 5)
 
     # 8. HumanEval (0-shot, full=164, max_tokens=1024)
     echo ""
