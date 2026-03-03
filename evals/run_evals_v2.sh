@@ -126,28 +126,28 @@ get_system_instruction() {
     local task=$1
     case "${task}" in
         arc_challenge*|mmlu_pro*)
-            echo "Answer multiple choice questions. Reason carefully, then finish your answer with \"the answer is (X)\" where X is the correct letter choice."
+            echo "For multiple choice questions, end your response with \"the answer is (X)\" where X is the letter."
             ;;
         bbh_cot_zeroshot*)
-            echo "Answer the question carefully. End your response with the final answer on its own line."
+            echo "End your response with the final answer on its own line."
             ;;
         minerva_math*)
-            echo "Solve the math problem showing your work. Put your final numerical answer in \\boxed{}."
+            echo "Put your final numerical answer in \\boxed{}."
             ;;
         drop*)
-            echo "Answer the reading comprehension question. Give a short, direct answer."
+            echo "Give a short, direct answer."
             ;;
         humaneval*|mbpp*)
-            echo "Complete the Python function. Provide only the implementation code, no explanations or markdown."
+            echo "Provide only the implementation code, no explanations or markdown."
             ;;
         ifeval*)
-            echo "Follow the instructions precisely and completely."
+            echo "Follow the formatting instructions precisely."
             ;;
         truthfulqa*)
-            echo "Answer the question truthfully and concisely."
+            echo "Answer concisely."
             ;;
         *)
-            echo "You are a helpful assistant. Answer directly and concisely."
+            echo ""
             ;;
     esac
 }
