@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 #
-# run_evals_v2.sh — Piano Evals v2: lm-eval-harness benchmarks with system prompts
+# run_evals_v2.sh — Piano Evals v2: Brick-only benchmarks with system prompts
 #
-# Changes from run_evals.sh:
-#   - Per-benchmark system_instruction to fix format issues
-#   - Output to stage4/ (preserves stage2/ originals for comparison)
-#   - Model logging via x-vsr-selected-model header (gateway-side)
+# Launches a tmux session "evals-v2" that runs all benchmarks for Brick only.
+# Output goes to stage4/ (preserves stage2/ originals for comparison).
 #
 # Usage:
-#   ./run_evals_v2.sh                         # Run all phases
-#   ./run_evals_v2.sh --phase 1               # Run only phase 1
-#   ./run_evals_v2.sh --dry-run               # Dry run with --limit 5
-#   ./run_evals_v2.sh --only brick            # Run only for brick
-#   ./run_evals_v2.sh --phase 1 --only brick  # Combine filters
+#   ./run_evals_v2.sh                  # Launch tmux session with all phases
+#   ./run_evals_v2.sh --phase 1        # Run only phase 1
+#   ./run_evals_v2.sh --dry-run        # Dry run with --limit 5
+#   ./run_evals_v2.sh --no-tmux        # Run in foreground (no tmux)
+#
+# Monitor:
+#   tmux attach -t evals-v2
 #
 # Prerequisites:
 #   - lm-eval installed at .venv path below
@@ -21,12 +21,52 @@
 #
 set -eo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="${SCRIPT_DIR}/$(basename "${BASH_SOURCE[0]}")"
+
+##############################################################################
+# tmux launcher — re-exec inside a tmux session unless --no-tmux or already in
+##############################################################################
+
+USE_TMUX=true
+for arg in "$@"; do
+    [[ "$arg" == "--no-tmux" ]] && USE_TMUX=false
+done
+
+TMUX_SESSION="evals-v2"
+
+if [[ "${USE_TMUX}" == "true" && -z "${TMUX:-}" && -z "${INSIDE_EVALS_TMUX:-}" ]]; then
+    # Pre-flight check before launching tmux
+    if [[ -z "${REGOLO_API_KEY:-}" ]]; then
+        echo "ERROR: REGOLO_API_KEY is not set."
+        echo "Export it before running: export REGOLO_API_KEY=sk-..."
+        exit 1
+    fi
+
+    # Kill existing session if present
+    tmux kill-session -t "${TMUX_SESSION}" 2>/dev/null || true
+
+    # Build args without --no-tmux
+    ARGS=()
+    for arg in "$@"; do
+        [[ "$arg" != "--no-tmux" ]] && ARGS+=("$arg")
+    done
+
+    echo "Launching tmux session '${TMUX_SESSION}'..."
+    echo "  Attach with:  tmux attach -t ${TMUX_SESSION}"
+    echo "  Kill with:    tmux kill-session -t ${TMUX_SESSION}"
+
+    tmux new-session -d -s "${TMUX_SESSION}" \
+        "INSIDE_EVALS_TMUX=1 REGOLO_API_KEY='${REGOLO_API_KEY}' bash '${SCRIPT_PATH}' --no-tmux ${ARGS[*]+"${ARGS[*]}"}"
+    exit 0
+fi
+
 ##############################################################################
 # Configuration
 ##############################################################################
 
 LM_EVAL="/home/rdseeweb/regolo-semantic-routing/.venv/bin/lm_eval"
-EVALS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+EVALS_DIR="${SCRIPT_DIR}"
 STAGE_DIR="${EVALS_DIR}/stage4"
 LOGS_DIR="${STAGE_DIR}/logs"
 DATE=$(date +%Y-%m-%d)
@@ -34,21 +74,9 @@ DATE=$(date +%Y-%m-%d)
 # Brick gateway (running on dedicated eval server)
 BRICK_URL="http://213.171.186.210:8000/v1/chat/completions"
 
-# Regolo API — for individual model baselines
-REGOLO_URL="https://api.regolo.ai/v1/chat/completions"
-
-# Parallel arrays: index 0 = brick, 1-6 = individual models
-SHORT_NAMES=(brick llama70b gptoss120b gptoss20b mistral32 qwen3coder qwen3_8b)
-MODELS=(brick Llama-3.3-70B-Instruct gpt-oss-120b gpt-oss-20b mistral-small3.2 qwen3-coder-next Qwen3-8B)
-TOKENIZERS=(
-    meta-llama/Llama-3.3-70B-Instruct
-    meta-llama/Llama-3.3-70B-Instruct
-    Qwen/QwQ-32B
-    Qwen/Qwen3-32B
-    mistralai/Mistral-Small-3.1-24B-Instruct-2503
-    Qwen/Qwen3-235B-A22B
-    Qwen/Qwen3-8B
-)
+# Brick only — single model
+MODEL="brick"
+TOKENIZER="meta-llama/Llama-3.3-70B-Instruct"
 
 ##############################################################################
 # CLI arguments
@@ -56,15 +84,14 @@ TOKENIZERS=(
 
 PHASE="all"
 DRY_RUN=false
-ONLY_MODEL=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --phase)   PHASE="$2"; shift 2 ;;
-        --dry-run) DRY_RUN=true; shift ;;
-        --only)    ONLY_MODEL="$2"; shift 2 ;;
+        --phase)    PHASE="$2"; shift 2 ;;
+        --dry-run)  DRY_RUN=true; shift ;;
+        --no-tmux)  shift ;;  # already handled above
         -h|--help)
-            head -18 "${BASH_SOURCE[0]}" | tail -16
+            head -22 "${BASH_SOURCE[0]}" | tail -20
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -99,77 +126,59 @@ get_system_instruction() {
     local task=$1
     case "${task}" in
         arc_challenge*|mmlu_pro*)
-            echo "Answer multiple choice questions. Think step by step, then finish your answer with \"the answer is (X)\" where X is the correct letter choice."
+            echo "For multiple choice questions, end your response with \"the answer is (X)\" where X is the letter."
             ;;
         bbh_cot_zeroshot*)
-            echo "Answer the question step by step. End your response with the final answer on its own line."
+            echo "End your response with the final answer on its own line."
             ;;
         minerva_math*)
-            echo "Solve the math problem step by step. Put your final numerical answer in \\boxed{}."
+            echo "Put your final numerical answer in \\boxed{}."
             ;;
         drop*)
-            echo "Answer the reading comprehension question. Give a short, direct answer."
+            echo "Give a short, direct answer."
             ;;
         humaneval*|mbpp*)
-            echo "Complete the Python function. Provide only the implementation code, no explanations or markdown."
+            echo "Provide only the implementation code, no explanations or markdown."
             ;;
         ifeval*)
-            echo "Follow the instructions precisely and completely."
+            echo "Follow the formatting instructions precisely."
             ;;
         truthfulqa*)
-            echo "Answer the question truthfully and concisely."
+            echo "Answer concisely."
             ;;
         *)
-            echo "You are a helpful assistant. Answer directly and concisely."
+            echo ""
             ;;
     esac
 }
 
 ##############################################################################
-# Core function
+# Core function — runs a single benchmark for Brick
 ##############################################################################
 
 run_eval() {
-    local idx=$1
-    local task=$2
-    local output_dir=$3
-    local max_tokens=$4
-    shift 4
+    local task=$1
+    local output_dir=$2
+    local max_tokens=$3
+    shift 3
     local extra_flags=("$@")
 
-    local short="${SHORT_NAMES[$idx]}"
-    local model="${MODELS[$idx]}"
-    local tokenizer="${TOKENIZERS[$idx]}"
-    local out_dir="${STAGE_DIR}/${output_dir}/${short}"
-    local log_file="${LOGS_DIR}/${short}_${task//,/_}_${DATE}.log"
-
-    # --only filter
-    if [[ -n "${ONLY_MODEL}" && "${short}" != "${ONLY_MODEL}" ]]; then
-        return 0
-    fi
+    local out_dir="${STAGE_DIR}/${output_dir}/brick"
+    local log_file="${LOGS_DIR}/brick_${task//,/_}_${DATE}.log"
 
     # Idempotency: skip if results already exist
     if find "${out_dir}" -name "results*.json" -print -quit 2>/dev/null | grep -q .; then
-        echo "[SKIP] ${short} / ${task} — results exist in ${out_dir}"
+        echo "[SKIP] brick / ${task} — results exist in ${out_dir}"
         (( TOTAL_SKIP++ )) || true
         return 0
     fi
 
     mkdir -p "${out_dir}"
 
-    # Build model type and model_args
-    local model_type model_args base_url
-    if [[ $idx -eq 0 ]]; then
-        base_url="${BRICK_URL}"
-    else
-        base_url="${REGOLO_URL}"
-    fi
+    local model_type="openai-chat-completions"
+    local model_args="model=${MODEL},base_url=${BRICK_URL},tokenizer_backend=huggingface,tokenizer=${TOKENIZER},stream=false,max_tokens=${max_tokens},temperature=0,top_p=1"
 
-    # All models use openai-chat-completions (sends Authorization header)
-    model_type="openai-chat-completions"
-    model_args="model=${model},base_url=${base_url},tokenizer_backend=huggingface,tokenizer=${tokenizer},stream=false,max_tokens=${max_tokens},temperature=0,top_p=1"
-
-    # Dry run: append --limit 5 (argparse last-value-wins)
+    # Dry run: append --limit 5
     if [[ "${DRY_RUN}" == "true" ]]; then
         extra_flags+=(--limit 5)
     fi
@@ -179,10 +188,8 @@ run_eval() {
     system_instruction="$(get_system_instruction "${task}")"
 
     echo "============================================================"
-    echo "[RUN] ${short} / ${task}"
-    echo "  Model type: ${model_type}"
-    echo "  Model: ${model}"
-    echo "  Base URL: ${base_url}"
+    echo "[RUN] brick / ${task}"
+    echo "  Base URL: ${BRICK_URL}"
     echo "  Max tokens: ${max_tokens}"
     echo "  System instruction: ${system_instruction:0:80}..."
     echo "  Output: ${out_dir}"
@@ -192,7 +199,6 @@ run_eval() {
 
     # IMPORTANT: Run lm-eval from /tmp to avoid CWD directory names
     # colliding with task names (lm-eval checks Path(task).is_dir()).
-    # Use "|| true" to prevent set -e from killing the script on lm-eval failure.
     (cd /tmp && "${LM_EVAL}" run \
         --model "${model_type}" \
         --model_args "${model_args}" \
@@ -209,10 +215,10 @@ run_eval() {
     local status=${PIPESTATUS[0]}
 
     if [[ ${status} -eq 0 ]]; then
-        echo "[DONE] ${short} / ${task} — SUCCESS ($(date))"
+        echo "[DONE] brick / ${task} — SUCCESS ($(date))"
         (( TOTAL_RUN++ )) || true
     else
-        echo "[FAIL] ${short} / ${task} — exit code ${status} ($(date))"
+        echo "[FAIL] brick / ${task} — exit code ${status} ($(date))"
         (( TOTAL_FAIL++ )) || true
     fi
 
@@ -220,118 +226,88 @@ run_eval() {
 }
 
 ##############################################################################
-# Phase 1 — Core benchmarks: Brick + all 8 models
+# Phase 1 — Core benchmarks
 ##############################################################################
 
 phase1() {
     echo ""
     echo "################################################################"
-    echo "# PHASE 1 — Core benchmarks (Brick + 8 individual models)"
+    echo "# PHASE 1 — Core benchmarks (Brick only)"
     echo "################################################################"
 
-    # 1. MMLU-Pro (5-shot, 500 samples, max_tokens=2048)
     echo ""
     echo "=== MMLU-Pro (5-shot, limit=500) ==="
-    for i in "${!SHORT_NAMES[@]}"; do
-        run_eval "$i" "mmlu_pro" "mmlu_pro" 2048 \
-            --num_fewshot 5 \
-            --limit 500 \
-            --fewshot_as_multiturn True
-    done
+    run_eval "mmlu_pro" "mmlu_pro" 2048 \
+        --num_fewshot 5 \
+        --limit 500 \
+        --fewshot_as_multiturn True
 
-    # 2. ARC-Challenge Chat (0-shot built-in, full=1172, max_tokens=100)
     echo ""
     echo "=== ARC-Challenge Chat (0-shot, full) ==="
-    for i in "${!SHORT_NAMES[@]}"; do
-        run_eval "$i" "arc_challenge_chat" "arc_challenge" 100
-    done
+    run_eval "arc_challenge_chat" "arc_challenge" 100
 
-    # 3. TruthfulQA Gen (6-shot built-in, full=817, max_tokens=256)
     echo ""
     echo "=== TruthfulQA Gen (6-shot built-in, full) ==="
-    for i in "${!SHORT_NAMES[@]}"; do
-        run_eval "$i" "truthfulqa_gen" "truthfulqa" 256
-    done
+    run_eval "truthfulqa_gen" "truthfulqa" 256
 }
 
 ##############################################################################
-# Phase 2 — Extended benchmarks: all models
+# Phase 2 — Extended benchmarks
 ##############################################################################
 
 phase2() {
     echo ""
     echo "################################################################"
-    echo "# PHASE 2 — Extended benchmarks (all models)"
+    echo "# PHASE 2 — Extended benchmarks (Brick only)"
     echo "################################################################"
 
-    # 4. IFEval (0-shot, full=541, max_tokens=1280)
     echo ""
     echo "=== IFEval (0-shot, full) ==="
-    for i in "${!SHORT_NAMES[@]}"; do
-        run_eval "$i" "ifeval" "ifeval" 1280
-    done
+    run_eval "ifeval" "ifeval" 1280
 
-    # 5. BBH CoT Zeroshot (0-shot, 50/subtask, max_tokens=2048)
     echo ""
     echo "=== BBH CoT Zeroshot (0-shot, limit=50/subtask) ==="
-    for i in "${!SHORT_NAMES[@]}"; do
-        run_eval "$i" "bbh_cot_zeroshot" "bbh" 2048 \
-            --limit 50
-    done
+    run_eval "bbh_cot_zeroshot" "bbh" 2048 \
+        --limit 50
 
-    # 6. DROP (3-shot, 200 samples, max_tokens=2048)
     echo ""
     echo "=== DROP (3-shot, limit=200) ==="
-    for i in "${!SHORT_NAMES[@]}"; do
-        run_eval "$i" "drop" "drop" 2048 \
-            --num_fewshot 3 \
-            --limit 200 \
-            --fewshot_as_multiturn True
-    done
+    run_eval "drop" "drop" 2048 \
+        --num_fewshot 3 \
+        --limit 200 \
+        --fewshot_as_multiturn True
 
-    # 7. Minerva Math (4-shot, 100/subtask, max_tokens=2048)
     echo ""
     echo "=== Minerva Math (4-shot, limit=100/subtask) ==="
-    for i in "${!SHORT_NAMES[@]}"; do
-        run_eval "$i" "minerva_math" "minerva_math" 2048 \
-            --num_fewshot 4 \
-            --limit 100 \
-            --fewshot_as_multiturn True
-    done
+    run_eval "minerva_math" "minerva_math" 2048 \
+        --num_fewshot 4 \
+        --limit 100 \
+        --fewshot_as_multiturn True
 }
 
 ##############################################################################
-# Phase 3 — Code eval (Brick + qwen3-coder + llama70b)
+# Phase 3 — Code eval
 ##############################################################################
 
 phase3() {
     echo ""
     echo "################################################################"
-    echo "# PHASE 3 — Code eval (Brick + qwen3-coder + llama70b)"
+    echo "# PHASE 3 — Code eval (Brick only)"
     echo "################################################################"
 
     export HF_ALLOW_CODE_EVAL=1
 
-    # Code eval models: brick (0), llama70b (1), qwen3coder (5)
-    local code_indices=(0 1 5)
-
-    # 8. HumanEval (0-shot, full=164, max_tokens=1024)
     echo ""
     echo "=== HumanEval (0-shot, full) ==="
-    for i in "${code_indices[@]}"; do
-        run_eval "$i" "humaneval" "humaneval" 1024 \
-            --confirm_run_unsafe_code
-    done
+    run_eval "humaneval" "humaneval" 1024 \
+        --confirm_run_unsafe_code
 
-    # 9. MBPP (3-shot, full=500, max_tokens=512)
     echo ""
     echo "=== MBPP (3-shot, full) ==="
-    for i in "${code_indices[@]}"; do
-        run_eval "$i" "mbpp" "mbpp" 512 \
-            --num_fewshot 3 \
-            --fewshot_as_multiturn True \
-            --confirm_run_unsafe_code
-    done
+    run_eval "mbpp" "mbpp" 512 \
+        --num_fewshot 3 \
+        --fewshot_as_multiturn True \
+        --confirm_run_unsafe_code
 }
 
 ##############################################################################
@@ -339,11 +315,10 @@ phase3() {
 ##############################################################################
 
 echo "========================================"
-echo " Piano Evals v2 — lm-eval-harness"
+echo " Piano Evals v2 — Brick only"
 echo " Date:       ${DATE}"
 echo " Phase:      ${PHASE}"
 echo " Dry run:    ${DRY_RUN}"
-echo " Only model: ${ONLY_MODEL:-all}"
 echo " lm_eval:    ${LM_EVAL}"
 echo " Brick URL:  ${BRICK_URL}"
 echo " Stage dir:  ${STAGE_DIR}"
