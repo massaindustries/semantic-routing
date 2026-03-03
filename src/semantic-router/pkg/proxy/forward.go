@@ -82,7 +82,7 @@ func (s *Server) forwardToBackend(w http.ResponseWriter, clientReq *http.Request
 
 	// Send upstream request
 	client := &http.Client{
-		Timeout: 5 * time.Minute, // LLM requests can be slow
+		Timeout: 10 * time.Minute, // LLM reasoning requests can be very slow
 	}
 	upstreamResp, err := client.Do(upstreamReq)
 	if err != nil {
