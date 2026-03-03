@@ -126,13 +126,13 @@ get_system_instruction() {
     local task=$1
     case "${task}" in
         arc_challenge*|mmlu_pro*)
-            echo "Answer multiple choice questions. Think step by step, then finish your answer with \"the answer is (X)\" where X is the correct letter choice."
+            echo "Answer multiple choice questions. Reason carefully, then finish your answer with \"the answer is (X)\" where X is the correct letter choice."
             ;;
         bbh_cot_zeroshot*)
-            echo "Answer the question step by step. End your response with the final answer on its own line."
+            echo "Answer the question carefully. End your response with the final answer on its own line."
             ;;
         minerva_math*)
-            echo "Solve the math problem step by step. Put your final numerical answer in \\boxed{}."
+            echo "Solve the math problem showing your work. Put your final numerical answer in \\boxed{}."
             ;;
         drop*)
             echo "Answer the reading comprehension question. Give a short, direct answer."
