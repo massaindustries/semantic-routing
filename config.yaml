@@ -51,7 +51,7 @@ vllm_endpoints:
 default_model: "gpt-oss-120b"
 
 model_config:
-  Qwen3-8B:
+  qwen3-8b:
     preferred_endpoints: ["regolo"]
     param_size: "8b"
   gpt-oss-20b:
@@ -67,7 +67,7 @@ model_config:
   Llama-3.3-70B-Instruct:
     preferred_endpoints: ["regolo"]
     param_size: "70b"
-  mistral-small-3.2:
+  mistral-small3.2:
     preferred_endpoints: ["regolo"]
     param_size: "24b"
   gemma-3-27b-it:
@@ -324,7 +324,7 @@ decisions:
         - type: "keyword"
           name: "greeting_simple"
     modelRefs:
-      - model: "Qwen3-8B"
+      - model: "qwen3-8b"
         use_reasoning: false
 
   - name: "easy_questions"
@@ -336,7 +336,7 @@ decisions:
         - type: "keyword"
           name: "easy_questions"
     modelRefs:
-      - model: "Qwen3-8B"
+      - model: "qwen3-8b"
         use_reasoning: false
 
   - name: "formatting_tasks"
@@ -408,7 +408,7 @@ decisions:
         - type: "keyword"
           name: "analysis_keywords"
     modelRefs:
-      - model: "mistral-small-3.2"
+      - model: "mistral-small3.2"
         use_reasoning: false
 
   # ═══ DOMAIN-BASED DECISIONS (lower priority) ═══════════════
@@ -461,7 +461,7 @@ decisions:
         - type: "domain"
           name: "economics"
     modelRefs:
-      - model: "mistral-small-3.2"
+      - model: "mistral-small3.2"
         use_reasoning: false
 
   - name: "domain_science"
@@ -477,7 +477,7 @@ decisions:
         - type: "domain"
           name: "psychology"
     modelRefs:
-      - model: "mistral-small-3.2"
+      - model: "mistral-small3.2"
         use_reasoning: false
 
   - name: "domain_general"
