@@ -90,7 +90,7 @@ embedding_models:
     model_type: "qwen3"
     preload_embeddings: true
     enable_soft_matching: true
-    min_score_threshold: "0.5"
+    min_score_threshold: 0.5
 
 # ─── Domain Classifier (ModernBERT) ─────────────────────────
 # Runs locally in the container via Rust/Candle. Model (~400MB) is downloaded
