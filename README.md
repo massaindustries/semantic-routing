@@ -16,7 +16,7 @@
 
 ## Abstract
 
-Modern LLM deployments face a fragmentation problem: different input modalities — text, images, and audio — require different backend models and different API endpoints, forcing clients to implement modality detection and model selection logic themselves. This breaks the promise of a unified chat completion interface and creates operational overhead as modality requirements evolve. We present **Brick**, a multimodal routing gateway that exposes a single virtual model (`model: "brick"`) accepting any combination of text, images, and audio in standard OpenAI chat completion format. Brick detects input modality, performs OCR and speech-to-text preprocessing concurrently where needed, and routes to the appropriate backend — either directly to a vision model for image+text inputs, or through the semantic routing pipeline for text-derived content — without any client-side changes required. Brick operates as a transparent proxy: clients send the same JSON they would send to any OpenAI-compatible endpoint, and the `x-selected-model` response header reports which backend was selected.
+Modern LLM deployments face a fragmentation problem: different input modalities (text, images, and audio) require different backend models and different API endpoints, forcing clients to implement modality detection and model selection logic themselves. This breaks the promise of a unified chat completion interface and creates operational overhead as modality requirements evolve. We present **Brick**, a multimodal routing gateway that exposes a single virtual model (`model: "brick"`) accepting any combination of text, images, and audio in standard OpenAI chat completion format. Brick detects input modality, performs OCR and speech-to-text preprocessing concurrently where needed, and routes to the appropriate backend — either directly to a vision model for image+text inputs, or through the semantic routing pipeline for text-derived content — without any client-side changes required. Brick operates as a transparent proxy: clients send the same JSON they would send to any OpenAI-compatible endpoint, and the `x-selected-model` response header reports which backend was selected.
 
 ---
 
@@ -91,7 +91,7 @@ Brick is implemented in Go 1.24 as part of the semantic router's HTTP proxy serv
 
 | File | Purpose |
 |------|---------|
-| `pkg/proxy/brick.go` | Main handler — modality dispatch, `x-selected-model` bypass, pipeline integration |
+| `pkg/proxy/brick.go` | Main handler: modality dispatch, `x-selected-model` bypass, pipeline integration |
 | `pkg/multimodal/multimodal.go` | `Preprocess()` — concurrent OCR + STT, modality extraction, body rewriting |
 | `pkg/config/mymodel.go` | `BrickConfig` struct — all configurable fields with YAML tags |
 
