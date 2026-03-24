@@ -20,6 +20,38 @@ Modern LLM deployments face a fragmentation problem: different input modalities 
 
 ---
 
+## Quick Start
+
+```bash
+# 1. Clone
+git clone https://github.com/massaindustries/semantic-routing.git
+cd semantic-routing
+
+# 2. Build the Docker image (Rust + Go multi-stage, ~5 min first build)
+make docker-build-mymodel
+
+# 3. Set your Regolo API key and start
+export REGOLO_API_KEY="sk-..."
+docker compose -f deploy/docker-compose/docker-compose.yml up -d
+
+# 4. Verify
+curl http://localhost:8000/health
+curl http://localhost:8000/v1/models
+```
+
+Send a request to `model: "brick"`:
+
+```bash
+curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $REGOLO_API_KEY" \
+  -d '{"model": "brick", "messages": [{"role": "user", "content": "Hello"}]}'
+```
+
+The `x-selected-model` response header reports which backend was chosen.
+
+---
+
 ## 1. Introduction
 
 Large language model APIs have converged on the OpenAI chat completions format as a de-facto standard. However, this standard was designed for text, and multimodal inputs — images, audio, documents — have been grafted on in incompatible ways: some providers accept `image_url` content parts, others require separate transcription endpoints, and vision models and text models live at different API paths.
