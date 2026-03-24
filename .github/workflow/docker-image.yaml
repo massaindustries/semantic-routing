@@ -16,27 +16,34 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Log in to external Docker registry
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY }} -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Set image tag
         id: vars
         run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            TAG_NAME="${GITHUB_REF##*/}"
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "tag_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
             echo "is_tag=true" >> $GITHUB_OUTPUT
           else
-            TAG_NAME="dev"
+            echo "tag_name=dev" >> $GITHUB_OUTPUT
             echo "is_tag=false" >> $GITHUB_OUTPUT
           fi
-          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
 
-      - name: Tag and push image as latest (only on tag)
-        if: steps.vars.outputs.is_tag == 'true'
+      - name: Build and Push
         run: |
-          echo ${{ secrets.DOCKER_IMAGE_NAME }}
           docker build -t ${{ secrets.DOCKER_IMAGE_NAME }}:${{ github.sha }} -f ./Dockerfile . --no-cache
-          docker tag ${{ secrets.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ secrets.DOCKER_REGISTRY }}/regolo/${{ secrets.DOCKER_IMAGE_NAME }}:latest
-          docker push ${{ secrets.DOCKER_REGISTRY }}/regolo/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+          
+          docker tag ${{ secrets.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ secrets.DOCKER_REGISTRY }}/regolo/${{ secrets.DOCKER_IMAGE_NAME }}:${{ steps.vars.outputs.tag_name }}
+          docker push ${{ secrets.DOCKER_REGISTRY }}/regolo/${{ secrets.DOCKER_IMAGE_NAME }}:${{ steps.vars.outputs.tag_name }}
+          
+          if [ "${{ steps.vars.outputs.is_tag }}" == "true" ]; then
+            docker tag ${{ secrets.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ secrets.DOCKER_REGISTRY }}/regolo/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+            docker push ${{ secrets.DOCKER_REGISTRY }}/regolo/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+          fi
 
       - name: Log out from external Docker registry
         run: docker logout ${{ secrets.DOCKER_REGISTRY }}
