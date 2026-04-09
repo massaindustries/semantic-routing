@@ -1,0 +1,408 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.header h1 {
+  font-size: 3rem;
+  color: var(--ifm-color-primary);
+  margin-bottom: 1rem;
+  background: linear-gradient(45deg, #0969da, #8250df);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  color: var(--ifm-color-content-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.section h2 {
+  color: var(--ifm-color-primary);
+  margin-bottom: 1rem;
+  font-size: 2rem;
+  text-align: center;
+}
+
+.sectionDescription {
+  text-align: center;
+  color: var(--ifm-color-content-secondary);
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.teamGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.memberCard {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.memberCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.memberHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--ifm-color-primary-light);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.memberInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.nameWithBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.memberName {
+  margin: 0;
+  color: var(--ifm-color-primary);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.badge.maintainer,
+.badge.committer,
+.badge.contributor {
+  background: var(--ifm-color-primary);
+  color: white;
+}
+
+.memberRole {
+  margin: 0;
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.company {
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.memberBio {
+  color: var(--ifm-color-content-secondary);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  flex-grow: 1;
+  font-size: 0.875rem;
+}
+
+.memberActions {
+  margin-top: auto;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.actionLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--ifm-color-emphasis-100);
+  color: var(--ifm-color-primary);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+  flex: 1;
+  justify-content: center;
+  min-width: 80px;
+}
+
+.actionLink:hover {
+  background: var(--ifm-color-primary);
+  color: white;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.recognitionCard {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.recognitionCard h3 {
+  color: var(--ifm-color-primary);
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.recognitionCard h4 {
+  color: var(--ifm-color-primary);
+  margin: 2rem 0 1rem 0;
+  font-size: 1.25rem;
+}
+
+.pathToMaintainer {
+  margin-top: 2rem;
+}
+
+.steps {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--ifm-color-emphasis-100);
+  border-radius: 12px;
+  border-left: 4px solid var(--ifm-color-primary);
+}
+
+.stepNumber {
+  background: var(--ifm-color-primary);
+  color: white;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.step h5 {
+  margin: 0 0 0.5rem 0;
+  color: var(--ifm-color-primary);
+  font-size: 1rem;
+}
+
+.step p {
+  margin: 0;
+  color: var(--ifm-color-content-secondary);
+  line-height: 1.5;
+}
+
+.involvementGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.involvementCard {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.involvementCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.involvementCard h3 {
+  color: var(--ifm-color-primary);
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.involvementCard p {
+  color: var(--ifm-color-content-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: var(--ifm-color-primary);
+  color: white;
+  text-decoration: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--ifm-color-primary);
+}
+
+.actionButton:hover {
+  background: var(--ifm-color-primary-dark);
+  color: white;
+  text-decoration: none;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  border-color: var(--ifm-color-primary-dark);
+}
+
+/* Dark mode enhancement */
+[data-theme='dark'] .actionButton {
+  background: var(--ifm-color-primary);
+  color: var(--ifm-color-gray-100);
+  border: 2px solid var(--ifm-color-primary-light);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .actionButton:hover {
+  background: var(--ifm-color-primary-light);
+  color: white;
+  border-color: var(--ifm-color-primary-lighter);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .teamGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 996px) {
+  .teamGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+  }
+
+  .teamGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .memberHeader {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .memberName {
+    font-size: 1rem;
+  }
+
+  .badge {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.4rem;
+  }
+
+  .steps {
+    gap: 1rem;
+  }
+
+  .step {
+    flex-direction: column;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .stepNumber {
+    align-self: center;
+  }
+
+  .involvementGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .memberCard,
+[data-theme='dark'] .recognitionCard,
+[data-theme='dark'] .involvementCard {
+  background: var(--ifm-background-surface-color);
+  border-color: var(--ifm-color-emphasis-300);
+}
+
+[data-theme='dark'] .step {
+  background: var(--ifm-color-emphasis-200);
+}

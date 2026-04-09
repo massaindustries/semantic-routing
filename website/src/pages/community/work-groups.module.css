@@ -1,0 +1,283 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.header h1 {
+  font-size: 3rem;
+  color: var(--tech-primary-blue, #0969da);
+  margin-bottom: 1rem;
+  background: linear-gradient(45deg, var(--tech-primary-blue, #0969da), var(--tech-accent-purple, #8250df));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.intro {
+  background: var(--tech-card-bg, rgba(255, 255, 255, 0.8));
+  border: 1px solid var(--tech-border, #d0d7de);
+  border-radius: 16px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--tech-shadow, 0 4px 16px rgba(9, 105, 218, 0.1));
+}
+
+.intro h2 {
+  color: var(--tech-primary-blue, #0969da);
+  margin-bottom: 1rem;
+}
+
+.workingGroupsSection h2 {
+  color: var(--tech-primary-blue, #0969da);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.workGroupsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 2rem;
+  align-items: start;
+}
+
+.workGroupCard {
+  background: var(--tech-card-bg, rgba(255, 255, 255, 0.8));
+  border: 1px solid var(--tech-border, #d0d7de);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--tech-shadow, 0 4px 16px rgba(9, 105, 218, 0.1));
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.workGroupCard:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 48px rgba(9, 105, 218, 0.15);
+  border-color: var(--tech-border-accent, #0969da);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.icon {
+  font-size: 2rem;
+}
+
+.groupName {
+  color: var(--tech-primary-blue, #0969da);
+  font-weight: 700;
+  margin: 0;
+  flex: 1;
+  min-width: 120px;
+}
+
+.label {
+  background: var(--tech-accent-purple, #8250df);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.description {
+  color: var(--tech-text-primary, #24292f);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+}
+
+.skillsSection,
+.needsSection {
+  margin-bottom: 1rem;
+}
+
+.skillsSection h4,
+.needsSection h4 {
+  color: var(--tech-primary-blue, #0969da);
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.skillsList,
+.needsList {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--tech-text-secondary, #656d76);
+}
+
+.skillsList li,
+.needsList li {
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+.promotion {
+  background: linear-gradient(135deg, #f6f8fa 0%, #ffffff 50%, #f0f3f6 100%);
+  border: 1px solid var(--tech-border, #d0d7de);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.promotion h2 {
+  color: var(--tech-primary-blue, #0969da);
+  margin-bottom: 1rem;
+}
+
+.getInvolved {
+  background: var(--tech-card-bg, rgba(255, 255, 255, 0.8));
+  border: 1px solid var(--tech-border, #d0d7de);
+  border-radius: 16px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--tech-shadow, 0 4px 16px rgba(9, 105, 218, 0.1));
+}
+
+.getInvolved h2 {
+  color: var(--tech-primary-blue, #0969da);
+  margin-bottom: 1rem;
+}
+
+.stepsList {
+  padding-left: 1.5rem;
+  color: var(--tech-text-primary, #24292f);
+}
+
+.stepsList li {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.stepsList code {
+  background: var(--tech-code-bg, #f6f8fa);
+  padding: 0.125rem 0.25rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: var(--tech-code-text, #d73a49);
+}
+
+.contact {
+  background: var(--tech-card-bg, rgba(255, 255, 255, 0.8));
+  border: 1px solid var(--tech-border, #d0d7de);
+  border-radius: 16px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--tech-shadow, 0 4px 16px rgba(9, 105, 218, 0.1));
+}
+
+.contact h2 {
+  color: var(--tech-primary-blue, #0969da);
+  margin-bottom: 1rem;
+}
+
+.contact ul {
+  padding-left: 1.5rem;
+  color: var(--tech-text-primary, #24292f);
+}
+
+.contact li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.link {
+  color: var(--tech-primary-blue, #0969da);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .workGroupsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+  }
+
+  .workGroupsGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .groupName {
+    min-width: auto;
+  }
+}
+
+/* Dark mode support */
+[data-theme='dark'] .workGroupCard,
+[data-theme='dark'] .intro,
+[data-theme='dark'] .getInvolved,
+[data-theme='dark'] .contact {
+  background: rgba(22, 27, 34, 0.8);
+  border-color: #30363d;
+}
+
+[data-theme='dark'] .promotion {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #21262d 100%);
+  border-color: #30363d;
+}
+
+[data-theme='dark'] .header h1 {
+  background: linear-gradient(45deg, #58a6ff, #bc8cff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme='dark'] .groupName,
+[data-theme='dark'] .intro h2,
+[data-theme='dark'] .workingGroupsSection h2,
+[data-theme='dark'] .promotion h2,
+[data-theme='dark'] .getInvolved h2,
+[data-theme='dark'] .contact h2,
+[data-theme='dark'] .skillsSection h4,
+[data-theme='dark'] .needsSection h4 {
+  color: #58a6ff;
+}
+
+[data-theme='dark'] .link {
+  color: #58a6ff;
+}

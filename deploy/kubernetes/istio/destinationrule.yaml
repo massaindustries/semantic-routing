@@ -1,0 +1,11 @@
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: semantic-router
+  namespace: default
+spec:
+  host: semantic-router.vllm-semantic-router-system.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+      insecureSkipVerify: true

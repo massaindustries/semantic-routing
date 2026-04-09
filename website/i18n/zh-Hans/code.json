@@ -1,0 +1,1655 @@
+{
+  "theme.ErrorPageContent.title": {
+    "message": "页面已崩溃。",
+    "description": "The title of the fallback page when the page crashed"
+  },
+  "theme.BackToTopButton.buttonAriaLabel": {
+    "message": "回到顶部",
+    "description": "The ARIA label for the back to top button"
+  },
+  "theme.blog.paginator.navAriaLabel": {
+    "message": "博文列表分页导航",
+    "description": "The ARIA label for the blog pagination"
+  },
+  "theme.blog.paginator.newerEntries": {
+    "message": "较新的博文",
+    "description": "The label used to navigate to the newer blog posts page (previous page)"
+  },
+  "theme.blog.paginator.olderEntries": {
+    "message": "较旧的博文",
+    "description": "The label used to navigate to the older blog posts page (next page)"
+  },
+  "theme.blog.archive.title": {
+    "message": "历史博文",
+    "description": "The page & hero title of the blog archive page"
+  },
+  "theme.blog.archive.description": {
+    "message": "历史博文",
+    "description": "The page & hero description of the blog archive page"
+  },
+  "theme.blog.post.paginator.navAriaLabel": {
+    "message": "博文分页导航",
+    "description": "The ARIA label for the blog posts pagination"
+  },
+  "theme.blog.post.paginator.newerPost": {
+    "message": "较新一篇",
+    "description": "The blog post button label to navigate to the newer/previous post"
+  },
+  "theme.blog.post.paginator.olderPost": {
+    "message": "较旧一篇",
+    "description": "The blog post button label to navigate to the older/next post"
+  },
+  "theme.tags.tagsPageLink": {
+    "message": "查看所有标签",
+    "description": "The label of the link targeting the tag list page"
+  },
+  "theme.colorToggle.ariaLabel.mode.system": {
+    "message": "system mode",
+    "description": "The name for the system color mode"
+  },
+  "theme.colorToggle.ariaLabel.mode.light": {
+    "message": "浅色模式",
+    "description": "The name for the light color mode"
+  },
+  "theme.colorToggle.ariaLabel.mode.dark": {
+    "message": "暗黑模式",
+    "description": "The name for the dark color mode"
+  },
+  "theme.colorToggle.ariaLabel": {
+    "message": "切换浅色/暗黑模式（当前为{mode}）",
+    "description": "The ARIA label for the color mode toggle"
+  },
+  "theme.docs.breadcrumbs.navAriaLabel": {
+    "message": "页面路径",
+    "description": "The ARIA label for the breadcrumbs"
+  },
+  "theme.docs.DocCard.categoryDescription.plurals": {
+    "message": "{count} 个项目",
+    "description": "The default description for a category card in the generated index about how many items this category includes"
+  },
+  "theme.docs.paginator.navAriaLabel": {
+    "message": "文件选项卡",
+    "description": "The ARIA label for the docs pagination"
+  },
+  "theme.docs.paginator.previous": {
+    "message": "上一页",
+    "description": "The label used to navigate to the previous doc"
+  },
+  "theme.docs.paginator.next": {
+    "message": "下一页",
+    "description": "The label used to navigate to the next doc"
+  },
+  "theme.docs.tagDocListPageTitle.nDocsTagged": {
+    "message": "{count} 篇文档带有标签",
+    "description": "Pluralized label for \"{count} docs tagged\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  },
+  "theme.docs.tagDocListPageTitle": {
+    "message": "{nDocsTagged}「{tagName}」",
+    "description": "The title of the page for a docs tag"
+  },
+  "theme.docs.versionBadge.label": {
+    "message": "版本：{versionLabel}"
+  },
+  "theme.common.editThisPage": {
+    "message": "编辑此页",
+    "description": "The link label to edit the current page"
+  },
+  "theme.docs.versions.unreleasedVersionLabel": {
+    "message": "此为 {siteTitle} {versionLabel} 版尚未发行的文档。",
+    "description": "The label used to tell the user that he's browsing an unreleased doc version"
+  },
+  "theme.docs.versions.unmaintainedVersionLabel": {
+    "message": "此为 {siteTitle} {versionLabel} 版的文档，现已不再积极维护。",
+    "description": "The label used to tell the user that he's browsing an unmaintained doc version"
+  },
+  "theme.docs.versions.latestVersionSuggestionLabel": {
+    "message": "最新的文档请参阅 {latestVersionLink} ({versionLabel})。",
+    "description": "The label used to tell the user to check the latest version"
+  },
+  "theme.docs.versions.latestVersionLinkLabel": {
+    "message": "最新版本",
+    "description": "The label used for the latest version suggestion link label"
+  },
+  "theme.common.headingLinkTitle": {
+    "message": "{heading}的直接链接",
+    "description": "Title for link to heading"
+  },
+  "theme.lastUpdated.atDate": {
+    "message": "于 {date} ",
+    "description": "The words used to describe on which date a page has been last updated"
+  },
+  "theme.lastUpdated.byUser": {
+    "message": "由 {user} ",
+    "description": "The words used to describe by who the page has been last updated"
+  },
+  "theme.lastUpdated.lastUpdatedAtBy": {
+    "message": "最后{byUser}{atDate}更新",
+    "description": "The sentence used to display when a page has been last updated, and by who"
+  },
+  "theme.navbar.mobileVersionsDropdown.label": {
+    "message": "选择版本",
+    "description": "The label for the navbar versions dropdown on mobile view"
+  },
+  "theme.NotFound.title": {
+    "message": "找不到页面",
+    "description": "The title of the 404 page"
+  },
+  "theme.tags.tagsListLabel": {
+    "message": "标签：",
+    "description": "The label alongside a tag list"
+  },
+  "theme.admonition.caution": {
+    "message": "警告",
+    "description": "The default label used for the Caution admonition (:::caution)"
+  },
+  "theme.admonition.danger": {
+    "message": "危险",
+    "description": "The default label used for the Danger admonition (:::danger)"
+  },
+  "theme.admonition.info": {
+    "message": "信息",
+    "description": "The default label used for the Info admonition (:::info)"
+  },
+  "theme.admonition.note": {
+    "message": "备注",
+    "description": "The default label used for the Note admonition (:::note)"
+  },
+  "theme.admonition.tip": {
+    "message": "提示",
+    "description": "The default label used for the Tip admonition (:::tip)"
+  },
+  "theme.admonition.warning": {
+    "message": "注意",
+    "description": "The default label used for the Warning admonition (:::warning)"
+  },
+  "theme.AnnouncementBar.closeButtonAriaLabel": {
+    "message": "关闭",
+    "description": "The ARIA label for close button of announcement bar"
+  },
+  "theme.blog.sidebar.navAriaLabel": {
+    "message": "最近博文导航",
+    "description": "The ARIA label for recent posts in the blog sidebar"
+  },
+  "theme.DocSidebarItem.expandCategoryAriaLabel": {
+    "message": "展开侧边栏分类 '{label}'",
+    "description": "The ARIA label to expand the sidebar category"
+  },
+  "theme.DocSidebarItem.collapseCategoryAriaLabel": {
+    "message": "折叠侧边栏分类 '{label}'",
+    "description": "The ARIA label to collapse the sidebar category"
+  },
+  "theme.navbar.mobileLanguageDropdown.label": {
+    "message": "选择语言",
+    "description": "The label for the mobile language switcher dropdown"
+  },
+  "theme.NavBar.navAriaLabel": {
+    "message": "主导航",
+    "description": "The ARIA label for the main navigation"
+  },
+  "theme.TOCCollapsible.toggleButtonLabel": {
+    "message": "本页总览",
+    "description": "The label used by the button on the collapsible TOC component"
+  },
+  "theme.NotFound.p1": {
+    "message": "我们找不到你要找的页面。",
+    "description": "The first paragraph of the 404 page"
+  },
+  "theme.NotFound.p2": {
+    "message": "请联系原始链接来源网站的所有者，并告知他们链接已损坏。",
+    "description": "The 2nd paragraph of the 404 page"
+  },
+  "theme.blog.post.readMore": {
+    "message": "阅读更多",
+    "description": "The label used in blog post item excerpts to link to full blog posts"
+  },
+  "theme.blog.post.readMoreLabel": {
+    "message": "阅读 {title} 的全文",
+    "description": "The ARIA label for the link to full blog posts from excerpts"
+  },
+  "theme.blog.post.readingTime.plurals": {
+    "message": "阅读需 {readingTime} 分钟",
+    "description": "Pluralized label for \"{readingTime} min read\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  },
+  "theme.CodeBlock.wordWrapToggle": {
+    "message": "切换自动换行",
+    "description": "The title attribute for toggle word wrapping button of code block lines"
+  },
+  "theme.CodeBlock.copy": {
+    "message": "复制",
+    "description": "The copy button label on code blocks"
+  },
+  "theme.CodeBlock.copied": {
+    "message": "复制成功",
+    "description": "The copied button label on code blocks"
+  },
+  "theme.CodeBlock.copyButtonAriaLabel": {
+    "message": "复制代码到剪贴板",
+    "description": "The ARIA label for copy code blocks button"
+  },
+  "theme.docs.breadcrumbs.home": {
+    "message": "主页面",
+    "description": "The ARIA label for the home page in the breadcrumbs"
+  },
+  "theme.docs.sidebar.navAriaLabel": {
+    "message": "文档侧边栏",
+    "description": "The ARIA label for the sidebar navigation"
+  },
+  "theme.docs.sidebar.collapseButtonTitle": {
+    "message": "收起侧边栏",
+    "description": "The title attribute for collapse button of doc sidebar"
+  },
+  "theme.docs.sidebar.collapseButtonAriaLabel": {
+    "message": "收起侧边栏",
+    "description": "The title attribute for collapse button of doc sidebar"
+  },
+  "theme.docs.sidebar.closeSidebarButtonAriaLabel": {
+    "message": "关闭导航栏",
+    "description": "The ARIA label for close button of mobile sidebar"
+  },
+  "theme.navbar.mobileSidebarSecondaryMenu.backButtonLabel": {
+    "message": "← 回到主菜单",
+    "description": "The label of the back button to return to main menu, inside the mobile navbar sidebar secondary menu (notably used to display the docs sidebar)"
+  },
+  "theme.docs.sidebar.toggleSidebarButtonAriaLabel": {
+    "message": "切换导航栏",
+    "description": "The ARIA label for hamburger menu button of mobile navigation"
+  },
+  "theme.docs.sidebar.expandButtonTitle": {
+    "message": "展开侧边栏",
+    "description": "The ARIA label and title attribute for expand button of doc sidebar"
+  },
+  "theme.docs.sidebar.expandButtonAriaLabel": {
+    "message": "展开侧边栏",
+    "description": "The ARIA label and title attribute for expand button of doc sidebar"
+  },
+  "theme.navbar.mobileDropdown.collapseButton.expandAriaLabel": {
+    "message": "Expand the dropdown",
+    "description": "The ARIA label of the button to expand the mobile dropdown navbar item"
+  },
+  "theme.navbar.mobileDropdown.collapseButton.collapseAriaLabel": {
+    "message": "Collapse the dropdown",
+    "description": "The ARIA label of the button to collapse the mobile dropdown navbar item"
+  },
+  "theme.blog.post.plurals": {
+    "message": "{count} 篇博文",
+    "description": "Pluralized label for \"{count} posts\". Use as much plural forms (separated by \"|\") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)"
+  },
+  "theme.blog.tagTitle": {
+    "message": "{nPosts} 含有标签「{tagName}」",
+    "description": "The title of the page for a blog tag"
+  },
+  "theme.blog.author.pageTitle": {
+    "message": "{authorName} - {nPosts}",
+    "description": "The title of the page for a blog author"
+  },
+  "theme.blog.authorsList.pageTitle": {
+    "message": "作者",
+    "description": "The title of the authors page"
+  },
+  "theme.blog.authorsList.viewAll": {
+    "message": "查看所有作者",
+    "description": "The label of the link targeting the blog authors page"
+  },
+  "theme.blog.author.noPosts": {
+    "message": "该作者尚未撰写任何文章。",
+    "description": "The text for authors with 0 blog post"
+  },
+  "theme.contentVisibility.unlistedBanner.title": {
+    "message": "未列出页",
+    "description": "The unlisted content banner title"
+  },
+  "theme.contentVisibility.unlistedBanner.message": {
+    "message": "此页面未列出。搜索引擎不会对其索引，只有拥有直接链接的用户才能访问。",
+    "description": "The unlisted content banner message"
+  },
+  "theme.contentVisibility.draftBanner.title": {
+    "message": "草稿页",
+    "description": "The draft content banner title"
+  },
+  "theme.contentVisibility.draftBanner.message": {
+    "message": "此页面是草稿，仅在开发环境中可见，不会包含在正式版本中。",
+    "description": "The draft content banner message"
+  },
+  "theme.ErrorPageContent.tryAgain": {
+    "message": "重试",
+    "description": "The label of the button to try again rendering when the React error boundary captures an error"
+  },
+  "theme.common.skipToMainContent": {
+    "message": "跳到主要内容",
+    "description": "The skip to content label used for accessibility, allowing to rapidly navigate to main content with keyboard tab/enter navigation"
+  },
+  "theme.tags.tagsPageTitle": {
+    "message": "标签",
+    "description": "The title of the tag list page"
+  },
+
+  "homepage.hero.intelligentRouting": {
+    "message": "智能路由"
+  },
+  "homepage.hero.mixtureOf": {
+    "message": "面向混合"
+  },
+  "homepage.hero.rotating.modality": {
+    "message": "模态"
+  },
+  "homepage.hero.rotating.models": {
+    "message": "模型"
+  },
+  "homepage.hero.rotating.tools": {
+    "message": "工具"
+  },
+  "homepage.hero.rotating.skills": {
+    "message": "技能"
+  },
+  "homepage.hero.subtitle.signalDriven": {
+    "message": "信号驱动"
+  },
+  "homepage.hero.subtitle.decisions": {
+    "message": "决策"
+  },
+  "homepage.hero.subtitle.pluginChain": {
+    "message": "插件链"
+  },
+  "homepage.hero.subtitle.architecture": {
+    "message": "架构"
+  },
+  "homepage.hero.subtitle.line2": {
+    "message": "云 · 数据中心 · 边缘"
+  },
+  "homepage.hero.pill.signals": {
+    "message": "信号驱动"
+  },
+  "homepage.hero.pill.plugins": {
+    "message": "插件链"
+  },
+  "homepage.hero.pill.deployment": {
+    "message": "云 · 数据中心 · 边缘"
+  },
+  "homepage.hero.getStarted": {
+    "message": "快速开始"
+  },
+  "homepage.hero.publicBeta": {
+    "message": "在线体验"
+  },
+  "homepage.aiTech.label": {
+    "message": "基于编码器模型"
+  },
+  "homepage.aiTech.title": {
+    "message": "编码器驱动的智能"
+  },
+  "homepage.aiTech.description": {
+    "message": "专用编码器模型从每个请求中提取语义 — 理解意图、排序相关性、跨模态实时分类内容。"
+  },
+  "homepage.aiTech.cap.multiModality": {
+    "message": "多模态"
+  },
+  "homepage.aiTech.cap.multiModality.desc": {
+    "message": "检测并路由文本、图像和音频输入到合适的模态模型。"
+  },
+  "homepage.aiTech.cap.biEncoder": {
+    "message": "Bi-Encoder 嵌入"
+  },
+  "homepage.aiTech.cap.biEncoder.desc": {
+    "message": "独立编码查询和候选项为稠密向量，用于相似度搜索和语义缓存。"
+  },
+  "homepage.aiTech.cap.crossEncoder": {
+    "message": "Cross-Encoder 学习"
+  },
+  "homepage.aiTech.cap.crossEncoder.desc": {
+    "message": "联合交叉注意力评分查询-候选对，实现高精度重排序。"
+  },
+  "homepage.aiTech.cap.classification": {
+    "message": "分类"
+  },
+  "homepage.aiTech.cap.classification.desc": {
+    "message": "基于自研 BERT 的领域、越狱、PII 和事实核查的分类器，覆盖多个 signal"
+  },
+  "homepage.aiTech.cap.attention": {
+    "message": "全注意力"
+  },
+  "homepage.aiTech.cap.attention.desc": {
+    "message": "跨 token 和句子的双向注意力 — 双向完整上下文，非因果掩码。"
+  },
+  "homepage.aiTech.cap.2dmse": {
+    "message": "2DMSE"
+  },
+  "homepage.aiTech.cap.2dmse.desc": {
+    "message": "推理时自适应调整嵌入层数和维度，按需平衡计算量与精度。"
+  },
+  "homepage.aiTech.cap.mrl": {
+    "message": "MRL"
+  },
+  "homepage.aiTech.cap.mrl.desc": {
+    "message": "无需重训即可截断嵌入向量到任意维度 — 按请求平衡精度与速度。"
+  },
+  "homepage.architecture.title": {
+    "message": "架构"
+  },
+  "features.sectionTitle": {
+    "message": "我们的目标"
+  },
+  "features.sectionSubtitle": {
+    "message": "为混合模型（MoM）构建系统级智能，将全局智能引入 LLM 系统"
+  },
+  "translationBanner.outdated": {
+    "message": "此翻译可能已过时。英文原文已更新，中文尚未同步。",
+    "description": "Warning shown when translation is outdated"
+  },
+  "translationBanner.aiTranslated": {
+    "message": "本页面由 AI 从英文翻译，可能存在错误或不准确之处。",
+    "description": "Notice shown for AI translated content"
+  },
+  "youtube.title": {
+    "message": "vLLM Semantic Router 演示"
+  },
+  "youtube.latestNews": {
+    "message": "最新动态"
+  },
+  "youtube.description": {
+    "message": "用户体验是我们非常关注的。隆重推出 vLLM-SR 控制面板："
+  },
+  "youtube.feature.chat": {
+    "message": "与 vLLM-SR 对话并查看其思维链"
+  },
+  "youtube.feature.topology": {
+    "message": "查看模型意图的拓扑结构"
+  },
+  "youtube.feature.metrics": {
+    "message": "通过 Grafana 面板监控实时指标"
+  },
+  "youtube.feature.configure": {
+    "message": "配置不同领域的混合模型"
+  },
+  "codeOfConduct.title": {
+    "message": "行为准则 📜"
+  },
+  "codeOfConduct.subtitle": {
+    "message": "我们致力于构建一个开放、友好、包容的社区。"
+  },
+  "codeOfConduct.pledge.title": {
+    "message": "我们的承诺"
+  },
+  "codeOfConduct.pledge.desc1": {
+    "message": "作为成员、贡献者和领导者，我们承诺让社区中的每个人都能获得无骚扰的体验，无论年龄、体型、可见或不可见的残疾、种族、性别特征、性别认同和表达、经验水平、教育程度、社会经济地位、国籍、外貌、种族、宗教或性取向如何。"
+  },
+  "codeOfConduct.pledge.desc2": {
+    "message": "我们承诺以有助于建立一个开放、热情、多元、包容和健康的社区的方式行事和互动。"
+  },
+  "codeOfConduct.standards.title": {
+    "message": "行为标准"
+  },
+  "codeOfConduct.standards.positive.title": {
+    "message": "有助于营造积极环境的行为示例："
+  },
+  "codeOfConduct.standards.positive.list.1": {
+    "message": "对他人的同理心和善意"
+  },
+  "codeOfConduct.standards.positive.list.2": {
+    "message": "尊重不同的意见、观点和经历"
+  },
+  "codeOfConduct.standards.positive.list.3": {
+    "message": "给予并优雅地接受建设性反馈"
+  },
+  "codeOfConduct.standards.positive.list.4": {
+    "message": "承担责任并向受我们错误影响的人道歉"
+  },
+  "codeOfConduct.standards.positive.list.5": {
+    "message": "关注什么不仅对我们个人最好，而且对整个社区最好"
+  },
+  "codeOfConduct.standards.unacceptable.title": {
+    "message": "不可接受的行为："
+  },
+  "codeOfConduct.standards.unacceptable.list.1": {
+    "message": "使用与性有关的语言或图像，以及任何形式的性关注或求爱"
+  },
+  "codeOfConduct.standards.unacceptable.list.2": {
+    "message": "挑衅、侮辱或贬损性评论，以及人身或政治攻击"
+  },
+  "codeOfConduct.standards.unacceptable.list.3": {
+    "message": "公开或私下骚扰"
+  },
+  "codeOfConduct.standards.unacceptable.list.4": {
+    "message": "未经明确许可发布他人的隐私信息"
+  },
+  "codeOfConduct.standards.unacceptable.list.5": {
+    "message": "其他在职业环境中可能被认为不适当的行为"
+  },
+  "codeOfConduct.enforcement.title": {
+    "message": "履行职责"
+  },
+  "codeOfConduct.enforcement.desc1": {
+    "message": "社区领导者负责阐明和执行我们的可接受行为标准，并将对任何他们认为不适当、威胁、冒犯或有害的行为采取适当和公平的纠正措施。"
+  },
+  "codeOfConduct.enforcement.desc2": {
+    "message": "社区领导者有权并有责任删除、编辑或拒绝不符合本行为准则的评论、提交、代码、Wiki 编辑、问题和其他贡献，并在适当时传达审核决定的原因。"
+  },
+  "codeOfConduct.scope.title": {
+    "message": "适用范围"
+  },
+  "codeOfConduct.scope.desc": {
+    "message": "本行为准则适用于所有社区空间，也适用于个人在公共空间正式代表社区的情况。代表我们社区的例子包括使用官方电子邮件地址、通过官方社交媒体帐户发布消息，或在线上或线下活动中作为指定代表行事。"
+  },
+  "codeOfConduct.reporting.title": {
+    "message": "举报"
+  },
+  "codeOfConduct.reporting.desc1": {
+    "message": "虐待、骚扰或其他不可接受行为的实例可以通过以下方式向负责执行的社区领导者报告："
+  },
+  "codeOfConduct.reporting.list.1": {
+    "message": "（针对公共问题）"
+  },
+  "codeOfConduct.reporting.list.2": {
+    "message": "直接联系项目维护者"
+  },
+  "codeOfConduct.reporting.list.3": {
+    "message": "发送电子邮件给项目团队"
+  },
+  "codeOfConduct.reporting.desc2": {
+    "message": "所有投诉都将得到及时和公平的审查和调查。所有社区领导者都有义务尊重任何事件报告者的隐私和安全。"
+  },
+  "codeOfConduct.guidelines.title": {
+    "message": "执行指南"
+  },
+  "codeOfConduct.guidelines.desc": {
+    "message": "社区领导者在确定任何他们认为违反本行为准则的行为的后果时，将遵循这些社区影响指南："
+  },
+  "codeOfConduct.guidelines.impact": {
+    "message": "社区影响："
+  },
+  "codeOfConduct.guidelines.consequence": {
+    "message": "后果："
+  },
+  "codeOfConduct.guidelines.1.title": {
+    "message": "1. 纠正"
+  },
+  "codeOfConduct.guidelines.1.impact": {
+    "message": "使用不适当的语言或其他被认为在社区中不专业或不受欢迎的行为。"
+  },
+  "codeOfConduct.guidelines.1.consequence": {
+    "message": "社区领导者的私下书面警告，阐明违规行为的性质并解释为什么该行为是不适当的。"
+  },
+  "codeOfConduct.guidelines.2.title": {
+    "message": "2. 警告"
+  },
+  "codeOfConduct.guidelines.2.impact": {
+    "message": "通过单一事件或一系列行动造成的违规。"
+  },
+  "codeOfConduct.guidelines.2.consequence": {
+    "message": "带有后果的警告。在指定的时间段内不得与相关人员互动。"
+  },
+  "codeOfConduct.guidelines.3.title": {
+    "message": "3. 临时禁令"
+  },
+  "codeOfConduct.guidelines.3.impact": {
+    "message": "严重违反社区标准，包括持续的不当行为。"
+  },
+  "codeOfConduct.guidelines.3.consequence": {
+    "message": "在指定的时间段内禁止与社区进行任何形式的互动或公共交流。"
+  },
+  "codeOfConduct.guidelines.4.title": {
+    "message": "4. 永久禁令"
+  },
+  "codeOfConduct.guidelines.4.impact": {
+    "message": "表现出违反社区标准的模式，包括持续的不当行为、骚扰个人，或针对某些类别的个人进行攻击或贬低。"
+  },
+  "codeOfConduct.guidelines.4.consequence": {
+    "message": "永久禁止在社区内进行任何形式的公共互动。"
+  },
+  "codeOfConduct.attribution.title": {
+    "message": "来源说明"
+  },
+  "codeOfConduct.attribution.desc.prefix": {
+    "message": "本行为准则改编自"
+  },
+  "codeOfConduct.attribution.desc.middle": {
+    "message": "2.0 版本，可访问"
+  },
+  "contributing.title": {
+    "message": "为 vLLM Semantic Router 贡献 🤝"
+  },
+  "contributing.subtitle": {
+    "message": "我们欢迎社区贡献！以下是你可以帮助改进 vLLM Semantic Router 的方式。"
+  },
+  "contributing.waysToContribute": {
+    "message": "贡献方式"
+  },
+  "contributing.bugReports.title": {
+    "message": "🐛 错误报告"
+  },
+  "contributing.bugReports.desc.prefix": {
+    "message": "发现了错误？请在我们的"
+  },
+  "contributing.bugReports.list.1": {
+    "message": "使用清晰且描述性的标题"
+  },
+  "contributing.bugReports.list.2": {
+    "message": "提供重现步骤"
+  },
+  "contributing.bugReports.list.3": {
+    "message": "包含系统信息"
+  },
+  "contributing.bugReports.list.4": {
+    "message": "添加相关日志或错误消息"
+  },
+  "contributing.featureRequests.title": {
+    "message": "✨ 功能请求"
+  },
+  "contributing.featureRequests.desc": {
+    "message": "有新功能的想法？我们很乐意听听！"
+  },
+  "contributing.featureRequests.list.1": {
+    "message": "先检查现有问题"
+  },
+  "contributing.featureRequests.list.2": {
+    "message": "描述你要解决的问题"
+  },
+  "contributing.featureRequests.list.3": {
+    "message": "解释你建议的解决方案"
+  },
+  "contributing.featureRequests.list.4": {
+    "message": "考虑实现复杂度"
+  },
+  "contributing.documentation.title": {
+    "message": "📝 文档"
+  },
+  "contributing.documentation.desc": {
+    "message": "帮助改进我们的文档和示例。"
+  },
+  "contributing.documentation.list.1": {
+    "message": "修复错别字和语法"
+  },
+  "contributing.documentation.list.2": {
+    "message": "添加缺失的文档"
+  },
+  "contributing.documentation.list.3": {
+    "message": "创建教程和指南"
+  },
+  "contributing.documentation.list.4": {
+    "message": "改进代码示例"
+  },
+  "contributing.code.title": {
+    "message": "💻 代码贡献"
+  },
+  "contributing.code.desc": {
+    "message": "为核心功能做出贡献。"
+  },
+  "contributing.code.list.1": {
+    "message": "修复错误和问题"
+  },
+  "contributing.code.list.2": {
+    "message": "实现新功能"
+  },
+  "contributing.code.list.3": {
+    "message": "优化性能"
+  },
+  "contributing.code.list.4": {
+    "message": "添加测试覆盖率"
+  },
+  "contributing.process.title": {
+    "message": "贡献流程"
+  },
+  "contributing.process.step1.title": {
+    "message": "创建 Issue"
+  },
+  "contributing.process.step1.desc": {
+    "message": "首先与社区讨论你的想法或错误报告。"
+  },
+  "contributing.process.step2.title": {
+    "message": "Fork & 分支"
+  },
+  "contributing.process.step2.desc": {
+    "message": "从 main 分支为你的更改创建一个新分支。"
+  },
+  "contributing.process.step3.title": {
+    "message": "进行更改"
+  },
+  "contributing.process.step3.desc": {
+    "message": "按照我们的编码标准实施你的更改。"
+  },
+  "contributing.process.step4.title": {
+    "message": "测试"
+  },
+  "contributing.process.step4.desc": {
+    "message": "运行测试并确保你的更改不会破坏现有功能。"
+  },
+  "contributing.process.step4.tip1": {
+    "message": "1. 运行预提交钩子，确保符合项目提交准则；"
+  },
+  "contributing.process.step4.tip2.prefix": {
+    "message": "2. 你可以参考"
+  },
+  "contributing.process.step4.tip2.link": {
+    "message": "本地安装"
+  },
+  "contributing.process.step4.tip2.suffix": {
+    "message": "以在本地启动 semantic-router。"
+  },
+  "contributing.process.step5.title": {
+    "message": "提交 PR"
+  },
+  "contributing.process.step5.desc": {
+    "message": "创建一个包含清晰描述的拉取请求。"
+  },
+  "contributing.precommit.title": {
+    "message": "预提交钩子"
+  },
+  "contributing.precommit.desc1": {
+    "message": "Semantic-router 项目提供了一个预提交钩子来规范整个项目，包括 Go、Python、Rust、Markdown 和拼写错误检查。"
+  },
+  "contributing.precommit.desc2": {
+    "message": "虽然这些措施可能会增加贡献的难度，但它们是必要的。我们目前正在构建一个便携式的 Docker 预提交环境，以降低贡献难度，让你专注于功能性 PR。"
+  },
+  "contributing.precommit.manual.title": {
+    "message": "手动"
+  },
+  "contributing.precommit.tips.title": {
+    "message": "一些提示："
+  },
+  "contributing.precommit.tips.1": {
+    "message": "1. 如果预提交检查失败，别担心。你也可以通过执行 'make help' 获取更多信息。"
+  },
+  "contributing.precommit.tips.2": {
+    "message": "2. 对于 pip 安装工具，我们建议你使用 venv 进行安装。"
+  },
+  "contributing.precommit.tips.3": {
+    "message": "3. 我们建议通过 Python 虚拟环境安装 pre-commit。"
+  },
+  "contributing.precommit.tips.4": {
+    "message": "4. 你也可以直接提交 PR 让 GitHub CI 为你测试，但这会花费很多时间！"
+  },
+  "contributing.precommit.step1.title": {
+    "message": "安装 precommit"
+  },
+  "contributing.precommit.step1.desc": {
+    "message": "运行"
+  },
+  "contributing.precommit.step2.title": {
+    "message": "安装检查工具"
+  },
+  "contributing.precommit.step2.shell": {
+    "message": "5. Shell：以 Mac 为例，执行"
+  },
+  "contributing.precommit.step3.title": {
+    "message": "安装 precommit 到 git"
+  },
+  "contributing.precommit.step3.desc": {
+    "message": "运行"
+  },
+  "contributing.precommit.step3.then": {
+    "message": "然后 pre-commit 安装在"
+  },
+  "contributing.precommit.step4.title": {
+    "message": "运行"
+  },
+  "contributing.precommit.step4.desc": {
+    "message": "运行"
+  },
+  "contributing.precommit.step4.check": {
+    "message": "来检查。"
+  },
+  "contributing.docker.desc": {
+    "message": "从上面的本地运行方法可以看出，过程非常麻烦和复杂。因此，我们提供了基于 Docker 或 Podman 的运行方法。无需安装各种依赖软件；你只需要一个容器运行时。"
+  },
+  "contributing.docker.tips.1": {
+    "message": "虽然 Docker 可以帮助避免在本地安装过多的检测工具，但这并不意味着它会在提交过程中自动执行。因此，提交时，你可以使用"
+  },
+  "contributing.docker.tips.2": {
+    "message": "来跳过检测。"
+  },
+  "contributing.docker.step1.title": {
+    "message": "确保 Docker/Podman 已安装"
+  },
+  "contributing.docker.step2.title": {
+    "message": "通过 Docker/Podman 运行 precommit"
+  },
+  "contributing.docker.manual.desc": {
+    "message": "你也可以手动进入容器并执行操作："
+  },
+  "contributing.docker.manual.title": {
+    "message": "手动 Docker 设置"
+  },
+  "contributing.workGroups.title": {
+    "message": "工作组领域"
+  },
+  "contributing.workGroups.desc.prefix": {
+    "message": "考虑加入我们的"
+  },
+  "contributing.workGroups.link": {
+    "message": "工作组"
+  },
+  "contributing.workGroups.desc.suffix": {
+    "message": "以集中你的贡献："
+  },
+  "contributing.getHelp.title": {
+    "message": "获取帮助"
+  },
+  "contributing.getHelp.desc": {
+    "message": "在贡献过程中需要帮助？请联系我们："
+  },
+  "contributing.getHelp.discussions": {
+    "message": "用于一般性问题和讨论"
+  },
+  "contributing.getHelp.issues": {
+    "message": "用于错误报告和功能请求"
+  },
+  "contributing.getHelp.workGroups.link": {
+    "message": "工作组"
+  },
+  "contributing.getHelp.workGroups": {
+    "message": "加入特定的工作组"
+  },
+  "team.title": {
+    "message": "团队成员 👥"
+  },
+  "team.subtitle": {
+    "message": "构建智能 LLM 路由未来的热情成员们"
+  },
+  "team.coreTeam.title": {
+    "message": "核心团队"
+  },
+  "team.coreTeam.description": {
+    "message": "推动项目发展并做出关键决策的核心维护者。"
+  },
+  "team.joinTeam.title": {
+    "message": "加入我们"
+  },
+  "team.joinTeam.description": {
+    "message": "我们一直在寻找热情的贡献者加入我们的社区！"
+  },
+  "team.recognition.title": {
+    "message": "荣誉表彰"
+  },
+  "team.recognition.subtitle": {
+    "message": "贡献者表彰"
+  },
+  "team.recognition.description": {
+    "message": "我们相信认可社区成员的宝贵贡献。在特定领域展现持续奉献和高质量工作的贡献者可能会被邀请成为维护者，获得仓库的写入权限。"
+  },
+  "team.recognition.pathTitle": {
+    "message": "成为维护者之路："
+  },
+  "team.recognition.step1.title": {
+    "message": "定期贡献"
+  },
+  "team.recognition.step1.desc": {
+    "message": "在你感兴趣的领域做出持续、高质量的贡献"
+  },
+  "team.recognition.step2.title": {
+    "message": "加入工作组"
+  },
+  "team.recognition.step2.desc": {
+    "message": "积极参与我们的"
+  },
+  "team.recognition.step2.link": {
+    "message": "工作组"
+  },
+  "team.recognition.step3.title": {
+    "message": "社区投票"
+  },
+  "team.recognition.step3.desc": {
+    "message": "获得维护者团队的提名和批准"
+  },
+  "team.recognition.step4.title": {
+    "message": "维护者权限"
+  },
+  "team.recognition.step4.desc": {
+    "message": "获邀加入维护者团队并获得写入权限"
+  },
+  "team.getInvolved.title": {
+    "message": "参与方式"
+  },
+  "team.getInvolved.contribute.title": {
+    "message": "开始贡献"
+  },
+  "team.getInvolved.contribute.desc": {
+    "message": "准备好做出你的第一个贡献了吗？"
+  },
+  "team.getInvolved.contribute.link": {
+    "message": "贡献指南"
+  },
+  "team.getInvolved.workGroups.title": {
+    "message": "加入工作组"
+  },
+  "team.getInvolved.workGroups.desc": {
+    "message": "找到你的专业领域，与志同道合的贡献者联系。"
+  },
+  "team.getInvolved.workGroups.link": {
+    "message": "查看工作组"
+  },
+  "team.getInvolved.discussions.title": {
+    "message": "参与讨论"
+  },
+  "team.getInvolved.discussions.desc": {
+    "message": "参与社区讨论并分享你的想法。"
+  },
+  "team.getInvolved.discussions.link": {
+    "message": "GitHub 讨论区"
+  },
+  "team.members.HuaminChen.role": {
+    "message": "杰出工程师"
+  },
+  "team.members.HuaminChen.bio": {
+    "message": "Red Hat 杰出工程师，推动云原生和 AI/LLM 推理技术的创新。"
+  },
+  "team.members.ChenWang.role": {
+    "message": "高级研究科学家"
+  },
+  "team.members.ChenWang.bio": {
+    "message": "IBM 高级研究科学家，专注于先进 AI 系统和研究。"
+  },
+  "team.members.YueZhu.role": {
+    "message": "研究科学家"
+  },
+  "team.members.YueZhu.bio": {
+    "message": "IBM 研究科学家，专注于 AI 研究和 LLM 推理。"
+  },
+  "team.members.XunzhuoLiu.role": {
+    "message": "AI 网络"
+  },
+  "team.members.XunzhuoLiu.bio": {
+    "message": "腾讯 AI 网络工程师，领导 vLLM Semantic Router 开发并推动项目愿景。"
+  },
+  "team.members.SenanZedan.role": {
+    "message": "研发经理"
+  },
+  "team.members.SenanZedan.bio": {
+    "message": "一位充满活力且亲力亲为的工程经理，致力于建立精英工程团队并推动他们取得卓越成果。"
+  },
+  "team.members.YossiOvadia.role": {
+    "message": "高级首席工程师"
+  },
+  "team.members.YossiOvadia.bio": {
+    "message": "通过创新工具让开发人员和客户的生活更轻松。来自 Red Hat CTO 办公室。"
+  },
+  "team.members.samzong.role": {
+    "message": "AI 基础设施 / 云原生产品经理"
+  },
+  "team.members.samzong.bio": {
+    "message": "云原生 AI 基础设施产品负责人。专注于 Kubernetes、GPU 资源调度和大规模 LLM 服务平台。"
+  },
+  "team.members.LiavWeiss.role": {
+    "message": "软件工程师"
+  },
+  "team.members.LiavWeiss.bio": {
+    "message": "软件工程师，专注于后端和云原生系统，拥有探索 AI 基础设施、基于 LLM 的系统和 RAG 架构的实践经验。"
+  },
+  "team.members.AsaadBalum.role": {
+    "message": "高级软件工程师"
+  },
+  "team.members.AsaadBalum.bio": {
+    "message": "具有研究思维的高级软件工程师，专注于云原生平台、基于 Kubernetes 的基础设施和 AI 赋能。"
+  },
+  "team.members.Yehudit.role": {
+    "message": "软件工程师"
+  },
+  "team.members.Yehudit.bio": {
+    "message": "具有研究思维的软件工程师，专注于云原生平台和 AI 基础设施。开源贡献者。"
+  },
+  "team.members.NoaLimoy.role": {
+    "message": "软件工程师"
+  },
+  "team.members.NoaLimoy.bio": {
+    "message": "具有研究思维的软件工程师，专注于云原生平台和 AI 基础设施。开源贡献者。"
+  },
+  "team.members.JaredforReal.role": {
+    "message": "软件工程师"
+  },
+  "team.members.JaredforReal.bio": {
+    "message": "vLLM Semantic Router 的开源贡献者。"
+  },
+  "team.members.AbdallahSamara.role": {
+    "message": "高级软件工程师"
+  },
+  "team.members.AbdallahSamara.bio": {
+    "message": "具有研究驱动方法的软件工程师，专注于云原生平台和 AI 基础设施。构建语义路由系统并为开源 LLM 编排项目做出贡献。"
+  },
+  "team.members.HenSchwartz.role": {
+    "message": "软件工程师"
+  },
+  "team.members.HenSchwartz.bio": {
+    "message": "具有研究驱动方法的软件工程师，专注于云原生平台和 AI 基础设施。构建语义路由系统并为开源 LLM 编排项目做出贡献。"
+  },
+  "team.members.SrinivasA.role": {
+    "message": "软件工程师"
+  },
+  "team.members.SrinivasA.bio": {
+    "message": "应用软件工程师，拥有分布式控制系统和大数据经验。"
+  },
+  "team.members.carlory.role": {
+    "message": "开源工程师"
+  },
+  "team.members.carlory.bio": {
+    "message": "DaoCloud 开源工程师，专注于容器技术和云原生解决方案。热衷于为 vllm 和其他开源项目做出贡献。"
+  },
+  "team.members.JintaoZhang.role": {
+    "message": "高级软件工程师"
+  },
+  "team.members.JintaoZhang.bio": {
+    "message": "Kong Inc. 高级软件工程师 | 微软 MVP | CNCF 大使 | Kubernetes Ingress-NGINX 维护者 | PyCon China 和 KCD Beijing 组织者。"
+  },
+  "team.members.yuluo-yx.role": {
+    "message": "个人贡献者"
+  },
+  "team.members.yuluo-yx.bio": {
+    "message": "vLLM Semantic Router 的开源贡献者。"
+  },
+  "team.members.cryo-zd.role": {
+    "message": "个人贡献者"
+  },
+  "team.members.cryo-zd.bio": {
+    "message": "vLLM Semantic Router 的开源贡献者。"
+  },
+  "team.members.OneZero-Y.role": {
+    "message": "个人贡献者"
+  },
+  "team.members.OneZero-Y.bio": {
+    "message": "vLLM Semantic Router 的开源贡献者。"
+  },
+  "team.members.aeft.role": {
+    "message": "个人贡献者"
+  },
+  "team.members.aeft.bio": {
+    "message": "vLLM Semantic Router 的开源贡献者。"
+  },
+  "workGroups.title": {
+    "message": "vLLM Semantic Router 工作组 👋"
+  },
+  "workGroups.init.title": {
+    "message": "工作组初始化"
+  },
+  "workGroups.init.description": {
+    "message": "我们正在寻找围绕 vLLM Semantic Router 项目的兴趣点，并将其分为不同的工作组。"
+  },
+  "workGroups.init.comment.prefix": {
+    "message": "如果你对一个或多个工作组感兴趣，请在"
+  },
+  "workGroups.init.comment.suffix": {
+    "message": "发表评论。"
+  },
+  "workGroups.community.title": {
+    "message": "vLLM Semantic Router 社区工作组"
+  },
+  "workGroups.community.description": {
+    "message": "本节关于围绕该项目设置工作组，以集中关注特定领域。"
+  },
+  "workGroups.promotion.title": {
+    "message": "社区晋升"
+  },
+  "workGroups.promotion.description": {
+    "message": "我们感谢任何贡献，如果你在上述特定领域表现出持续的贡献，经过维护者团队投票后，你将晋升为其维护者，并被邀请加入 semantic-router-maintainer 组，获得此仓库的写入权限。"
+  },
+  "workGroups.getInvolved.title": {
+    "message": "如何参与"
+  },
+  "workGroups.step1.title": {
+    "message": "选择你感兴趣的领域："
+  },
+  "workGroups.step1.desc": {
+    "message": "查看上方的工作组，找出与你的技能和兴趣相符的领域"
+  },
+  "workGroups.step2.title": {
+    "message": "加入讨论："
+  },
+  "workGroups.step2.desc.prefix": {
+    "message": "在"
+  },
+  "workGroups.step2.desc.suffix": {
+    "message": "评论以表达你的兴趣"
+  },
+  "workGroups.step3.title": {
+    "message": "开始贡献："
+  },
+  "workGroups.step3.desc": {
+    "message": "寻找标有相应领域标签的问题（例如，"
+  },
+  "workGroups.step4.title": {
+    "message": "协作："
+  },
+  "workGroups.step4.desc": {
+    "message": "与在同一领域工作的其他社区成员联系"
+  },
+  "workGroups.contact.title": {
+    "message": "联系我们"
+  },
+  "workGroups.contact.desc": {
+    "message": "关于工作组的问题或参与方式："
+  },
+  "workGroups.contact.issue": {
+    "message": "在 GitHub 上打开一个"
+  },
+  "workGroups.contact.discussion": {
+    "message": "参与"
+  },
+  "workGroups.contact.docs": {
+    "message": "查看我们的"
+  },
+  "workGroups.contact.start": {
+    "message": "以开始使用"
+  },
+  "workGroups.card.skillsNeeded": {
+    "message": "所需技能："
+  },
+  "workGroups.card.currentNeeds": {
+    "message": "当前需求："
+  },
+  "workGroups.group.routercore.name": {
+    "message": "RouterCore"
+  },
+  "workGroups.group.routercore.description": {
+    "message": "利用嵌入式 SLM，实现分类、安全检测、自动推理等高级路由算法。"
+  },
+  "workGroups.group.routercore.skills.0": {
+    "message": "机器学习"
+  },
+  "workGroups.group.routercore.skills.1": {
+    "message": "BERT 模型"
+  },
+  "workGroups.group.routercore.skills.2": {
+    "message": "分类算法"
+  },
+  "workGroups.group.routercore.needs.0": {
+    "message": "模型优化"
+  },
+  "workGroups.group.routercore.needs.1": {
+    "message": "算法改进"
+  },
+  "workGroups.group.routercore.needs.2": {
+    "message": "推理逻辑"
+  },
+  "workGroups.group.research.name": {
+    "message": "Research"
+  },
+  "workGroups.group.research.description": {
+    "message": "探索 vLLM Semantic Router 中 SLM（小型语言模型）的前沿，改善 SLM 的延迟和上下文。"
+  },
+  "workGroups.group.research.skills.0": {
+    "message": "模型训练"
+  },
+  "workGroups.group.research.skills.1": {
+    "message": "模型微调"
+  },
+  "workGroups.group.research.skills.2": {
+    "message": "深度学习"
+  },
+  "workGroups.group.research.needs.0": {
+    "message": "SLM 研究"
+  },
+  "workGroups.group.research.needs.1": {
+    "message": "延迟优化"
+  },
+  "workGroups.group.research.needs.2": {
+    "message": "上下文改进"
+  },
+  "workGroups.group.networking.name": {
+    "message": "Networking"
+  },
+  "workGroups.group.networking.description": {
+    "message": "Envoy ExtProc，流量管理，网络优化"
+  },
+  "workGroups.group.networking.skills.0": {
+    "message": "Envoy 代理"
+  },
+  "workGroups.group.networking.skills.1": {
+    "message": "网络协议"
+  },
+  "workGroups.group.networking.skills.2": {
+    "message": "性能优化"
+  },
+  "workGroups.group.networking.needs.0": {
+    "message": "负载均衡"
+  },
+  "workGroups.group.networking.needs.1": {
+    "message": "流量路由"
+  },
+  "workGroups.group.networking.needs.2": {
+    "message": "网络安全"
+  },
+  "workGroups.group.observability.name": {
+    "message": "Observability"
+  },
+  "workGroups.group.observability.description": {
+    "message": "指标收集、分布式追踪、监控仪表板和结构化日志，用于生产环境可见性"
+  },
+  "workGroups.group.observability.skills.0": {
+    "message": "Prometheus/Grafana"
+  },
+  "workGroups.group.observability.skills.1": {
+    "message": "OpenTelemetry"
+  },
+  "workGroups.group.observability.skills.2": {
+    "message": "日志聚合"
+  },
+  "workGroups.group.observability.skills.3": {
+    "message": "监控系统"
+  },
+  "workGroups.group.observability.needs.0": {
+    "message": "指标实现"
+  },
+  "workGroups.group.observability.needs.1": {
+    "message": "追踪集成"
+  },
+  "workGroups.group.observability.needs.2": {
+    "message": "仪表板创建"
+  },
+  "workGroups.group.observability.needs.3": {
+    "message": "日志标准化"
+  },
+  "workGroups.group.bench.name": {
+    "message": "Bench"
+  },
+  "workGroups.group.bench.description": {
+    "message": "推理基准测试框架，性能优化"
+  },
+  "workGroups.group.bench.skills.0": {
+    "message": "性能测试"
+  },
+  "workGroups.group.bench.skills.1": {
+    "message": "基准测试工具"
+  },
+  "workGroups.group.bench.skills.2": {
+    "message": "数据分析"
+  },
+  "workGroups.group.bench.needs.0": {
+    "message": "基准测试框架"
+  },
+  "workGroups.group.bench.needs.1": {
+    "message": "性能指标"
+  },
+  "workGroups.group.bench.needs.2": {
+    "message": "测试自动化"
+  },
+  "workGroups.group.environment.name": {
+    "message": "Environment"
+  },
+  "workGroups.group.environment.description": {
+    "message": "Docker Compose, Kubernetes, 本地支持, Cloud Foundry 集成"
+  },
+  "workGroups.group.environment.skills.0": {
+    "message": "Docker"
+  },
+  "workGroups.group.environment.skills.1": {
+    "message": "Kubernetes"
+  },
+  "workGroups.group.environment.skills.2": {
+    "message": "云平台"
+  },
+  "workGroups.group.environment.skills.3": {
+    "message": "DevOps"
+  },
+  "workGroups.group.environment.needs.0": {
+    "message": "Helm 图表"
+  },
+  "workGroups.group.environment.needs.1": {
+    "message": "部署自动化"
+  },
+  "workGroups.group.environment.needs.2": {
+    "message": "云集成"
+  },
+  "workGroups.group.testandrelease.name": {
+    "message": "Test and Release"
+  },
+  "workGroups.group.testandrelease.description": {
+    "message": "CI/CD, 构建, 测试, 发布"
+  },
+  "workGroups.group.testandrelease.skills.0": {
+    "message": "CI/CD 工具"
+  },
+  "workGroups.group.testandrelease.skills.1": {
+    "message": "构建自动化"
+  },
+  "workGroups.group.testandrelease.skills.2": {
+    "message": "发布流程"
+  },
+  "workGroups.group.testandrelease.needs.0": {
+    "message": "测试自动化"
+  },
+  "workGroups.group.testandrelease.needs.1": {
+    "message": "发布管道"
+  },
+  "workGroups.group.testandrelease.needs.2": {
+    "message": "质量保证"
+  },
+  "workGroups.group.userexperience.name": {
+    "message": "User Experience"
+  },
+  "workGroups.group.userexperience.description": {
+    "message": "vLLM Semantic Router 的用户体验，API，配置和 CLI 指南及支持"
+  },
+  "workGroups.group.userexperience.skills.0": {
+    "message": "API 设计"
+  },
+  "workGroups.group.userexperience.skills.1": {
+    "message": "UX/UI"
+  },
+  "workGroups.group.userexperience.skills.2": {
+    "message": "开发者体验"
+  },
+  "workGroups.group.userexperience.needs.0": {
+    "message": "API 改进"
+  },
+  "workGroups.group.userexperience.needs.1": {
+    "message": "CLI 增强"
+  },
+  "workGroups.group.userexperience.needs.2": {
+    "message": "用户反馈集成"
+  },
+  "workGroups.group.docs.name": {
+    "message": "Docs"
+  },
+  "workGroups.group.docs.description": {
+    "message": "用户文档，信息架构，基础设施"
+  },
+  "workGroups.group.docs.skills.0": {
+    "message": "技术写作"
+  },
+  "workGroups.group.docs.skills.1": {
+    "message": "文档工具"
+  },
+  "workGroups.group.docs.skills.2": {
+    "message": "用户体验设计"
+  },
+  "workGroups.group.docs.needs.0": {
+    "message": "API 文档"
+  },
+  "workGroups.group.docs.needs.1": {
+    "message": "教程"
+  },
+  "workGroups.group.docs.needs.2": {
+    "message": "部署指南"
+  },
+  "publications.title": {
+    "message": "论文与演讲"
+  },
+  "publications.subtitle": {
+    "message": "当智慧交汇，创新便会绽放 ❤️"
+  },
+  "publications.papers.title": {
+    "message": "研究论文"
+  },
+  "publications.talks.title": {
+    "message": "会议演讲"
+  },
+  "promotion.title": {
+    "message": "社区晋升 🚀"
+  },
+  "promotion.subtitle": {
+    "message": "贡献者晋升规则 - 认可你的贡献并提升你的影响力"
+  },
+  "promotion.overview.title": {
+    "message": "晋升概述"
+  },
+  "promotion.timing.title": {
+    "message": "🎯 晋升时机"
+  },
+  "promotion.timing.desc.prefix": {
+    "message": "晋升评估在每次发布后进行，发布间隔为"
+  },
+  "promotion.timing.desc.strong": {
+    "message": "2-3 个月"
+  },
+  "promotion.timing.desc.suffix": {
+    "message": "。"
+  },
+  "promotion.principles.title": {
+    "message": "🏆 晋升原则"
+  },
+  "promotion.principles.desc": {
+    "message": "基于持续贡献、技术能力和社区参与度进行评估"
+  },
+  "promotion.growth.title": {
+    "message": "📈 成长路径"
+  },
+  "promotion.growth.desc": {
+    "message": "通过持续贡献和社区参与逐步晋升"
+  },
+  "promotion.rules.title": {
+    "message": "晋升规则"
+  },
+  "promotion.rules.description": {
+    "message": "每个角色的详细要求和权限。每个角色都建立在前一个角色的基础之上，责任和影响力也随之增加。"
+  },
+  "promotion.process.title": {
+    "message": "申请流程"
+  },
+  "promotion.process.step1.title": {
+    "message": "自我评估"
+  },
+  "promotion.process.step1.desc": {
+    "message": "确认你符合期望角色的贡献要求"
+  },
+  "promotion.process.step2.title": {
+    "message": "提交申请"
+  },
+  "promotion.process.step2.desc": {
+    "message": "发布后，创建一个 GitHub Issue 申请相应的角色"
+  },
+  "promotion.process.step3.title": {
+    "message": "社区审查"
+  },
+  "promotion.process.step3.desc": {
+    "message": "现有的维护者团队将评估你的贡献"
+  },
+  "promotion.process.step4.title": {
+    "message": "权限授予"
+  },
+  "promotion.process.step4.desc": {
+    "message": "批准后，你将获得相应的 GitHub 权限"
+  },
+  "promotion.getStarted.title": {
+    "message": "开始行动"
+  },
+  "promotion.getStarted.desc": {
+    "message": "准备好开始你的贡献之旅了吗？"
+  },
+  "promotion.getStarted.workGroups": {
+    "message": "🏷️ 查看工作组"
+  },
+  "promotion.getStarted.contributing": {
+    "message": "📖 贡献指南"
+  },
+  "promotion.getStarted.apply": {
+    "message": "📝 提交申请"
+  },
+  "promotion.card.requirements": {
+    "message": "📋 要求"
+  },
+  "promotion.card.timeline": {
+    "message": "⏰ 时间线"
+  },
+  "promotion.card.application": {
+    "message": "📝 如何申请"
+  },
+  "promotion.role.reviewer.title": {
+    "message": "审阅者"
+  },
+  "promotion.role.reviewer.permissions": {
+    "message": "分类权限"
+  },
+  "promotion.role.reviewer.requirements": {
+    "message": "在一个发布周期内积极贡献"
+  },
+  "promotion.role.reviewer.timeline": {
+    "message": "发布后（间隔 2-3 个月）"
+  },
+  "promotion.role.reviewer.application": {
+    "message": "由维护者提名或自我提名"
+  },
+  "promotion.role.reviewer.details.0": {
+    "message": "审查未解决的 PR"
+  },
+  "promotion.role.reviewer.details.1": {
+    "message": "帮助开启 GitHub Issues"
+  },
+  "promotion.role.reviewer.details.2": {
+    "message": "参与社区会议和 Slack 频道讨论"
+  },
+  "promotion.role.committer.title": {
+    "message": "提交者"
+  },
+  "promotion.role.committer.permissions": {
+    "message": "写入权限"
+  },
+  "promotion.role.committer.requirements": {
+    "message": "跨两个连续发布周期的持续贡献"
+  },
+  "promotion.role.committer.timeline": {
+    "message": "发布后（间隔 2-3 个月）"
+  },
+  "promotion.role.committer.application": {
+    "message": "必须由维护者提名，需要维护者多数票通过"
+  },
+  "promotion.role.committer.details.0": {
+    "message": "审查未解决的 PR"
+  },
+  "promotion.role.committer.details.1": {
+    "message": "帮助开启 GitHub Issues"
+  },
+  "promotion.role.committer.details.2": {
+    "message": "参与社区会议和 Slack 频道讨论"
+  },
+  "promotion.role.committer.details.3": {
+    "message": "在工作组中进行主要功能开发"
+  },
+  "promotion.role.committer.details.4": {
+    "message": "展示技术领导力"
+  },
+  "promotion.role.committer.details.5": {
+    "message": "指导新贡献者"
+  },
+  "promotion.role.maintainer.title": {
+    "message": "维护者"
+  },
+  "promotion.role.maintainer.permissions": {
+    "message": "维护权限"
+  },
+  "promotion.role.maintainer.requirements": {
+    "message": "跨三个连续发布周期的持续贡献"
+  },
+  "promotion.role.maintainer.timeline": {
+    "message": "发布后（间隔 2-3 个月）"
+  },
+  "promotion.role.maintainer.application": {
+    "message": "必须由维护者提名，需要所有维护者一致通过"
+  },
+  "promotion.role.maintainer.details.0": {
+    "message": "审查未解决的 PR"
+  },
+  "promotion.role.maintainer.details.1": {
+    "message": "帮助开启 GitHub Issues"
+  },
+  "promotion.role.maintainer.details.2": {
+    "message": "主持社区会议"
+  },
+  "promotion.role.maintainer.details.3": {
+    "message": "展示长期项目承诺"
+  },
+  "promotion.role.maintainer.details.4": {
+    "message": "领导工作组中的主要功能开发"
+  },
+  "promotion.role.maintainer.details.5": {
+    "message": "规划项目方向和路线图"
+  },
+  "features.intelligentRouting.title": {
+    "message": "🧠 智能路由"
+  },
+  "features.intelligentRouting.description": {
+    "message": "由 ModernBERT 微调模型驱动，具备智能意图理解能力，能够理解上下文、意图和复杂性，将请求路由到最佳 LLM。"
+  },
+  "features.aiSecurity.title": {
+    "message": "🛡️ AI 安全防护"
+  },
+  "features.aiSecurity.description": {
+    "message": "先进的 PII 检测和 Prompt Guard 功能，识别和阻止越狱攻击，确保整个基础设施中安全负责任的 AI 交互。"
+  },
+  "features.semanticCaching.title": {
+    "message": "⚡ 语义缓存"
+  },
+  "features.semanticCaching.description": {
+    "message": "智能相似度缓存，存储提示的语义表示，通过智能内容匹配大幅降低 Token 使用量和延迟。"
+  },
+  "features.autoReasoning.title": {
+    "message": "🤖 自动推理引擎"
+  },
+  "features.autoReasoning.description": {
+    "message": "自动推理引擎分析请求复杂度、领域专业知识需求和性能约束，自动为每个任务选择最佳模型。"
+  },
+  "features.analytics.title": {
+    "message": "🔬 实时分析"
+  },
+  "features.analytics.description": {
+    "message": "全面的监控和分析仪表板，提供神经网络洞察、模型性能指标和智能路由决策可视化。"
+  },
+  "features.scalable.title": {
+    "message": "🚀 可扩展架构"
+  },
+  "features.scalable.description": {
+    "message": "云原生设计，支持分布式神经处理、自动扩缩容能力，与现有 LLM 基础设施和模型服务平台无缝集成。"
+  },
+  "publications.label.paper": {
+    "message": "📄 论文"
+  },
+  "publications.label.watchRecording": {
+    "message": "🎤 观看录播"
+  },
+  "publications.label.eventPage": {
+    "message": "🎤 活动页面"
+  },
+  "publications.label.videoRecording": {
+    "message": "📹 观看录播"
+  },
+  "publications.filter.all": {
+    "message": "全部"
+  },
+  "publications.filter.papers": {
+    "message": "📄 论文"
+  },
+  "publications.filter.talks": {
+    "message": "🎤 演讲"
+  },
+
+  "homepage.whereItLives.title": {
+    "message": "它的位置"
+  },
+  "homepage.whereItLives.subtitle": {
+    "message": "它位于现实世界和模型之间"
+  },
+  "features.goal1": {
+    "message": "如何捕获请求、响应和上下文中的缺失信号？"
+  },
+  "features.goal2": {
+    "message": "如何结合这些信号做出更好的决策？"
+  },
+  "features.goal3": {
+    "message": "如何在不同模型之间更高效地协作？"
+  },
+  "features.goal4": {
+    "message": "如何保护现实世界和 LLM 系统免受越狱攻击、PII 泄露和幻觉的影响？"
+  },
+  "features.goal5": {
+    "message": "如何收集有价值的信号并构建自学习系统？"
+  },
+  "team.badge.maintainer": {
+    "message": "维护者"
+  },
+  "team.badge.committer": {
+    "message": "提交者"
+  },
+  "team.badge.contributor": {
+    "message": "贡献者"
+  },
+  "teamCarousel.title": {
+    "message": "认识我们的团队"
+  },
+  "teamCarousel.subtitle": {
+    "message": "vLLM Semantic Router 背后的优秀成员"
+  },
+  "teamCarousel.viewAll": {
+    "message": "查看所有团队成员"
+  },
+  "acknowledgements.title": {
+    "message": "致谢"
+  },
+  "acknowledgements.subtitle": {
+    "message": "vLLM Semantic Router 诞生于开源，构建于开源"
+  }
+}
