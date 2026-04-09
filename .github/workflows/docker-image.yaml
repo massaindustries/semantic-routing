@@ -3,7 +3,7 @@ name: Docker Build and Push
 on:
   push:
     branches:
-      - 'deploy'
+      - '**'
     tags:
       - 'v*'
 
@@ -23,20 +23,72 @@ jobs:
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             TAG_NAME="${GITHUB_REF##*/}"
+            # strip leading v (e.g., v0.1.0 -> 0.1.0)
+            NUM_TAG="${TAG_NAME#v}"
             echo "is_tag=true" >> $GITHUB_OUTPUT
+            echo "num_tag=${NUM_TAG}" >> $GITHUB_OUTPUT
           else
             TAG_NAME="dev"
             echo "is_tag=false" >> $GITHUB_OUTPUT
           fi
           echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
 
-      - name: Tag and push image as latest (only on tag)
-        if: steps.vars.outputs.is_tag == 'true'
+      - name: Build and push Docker image to registry DEV
         run: |
-          echo ${{ secrets.DOCKER_IMAGE_NAME }}
-          docker build -t ${{ secrets.DOCKER_IMAGE_NAME }}:${{ github.sha }} -f ./Dockerfile . --no-cache
-          docker tag ${{ secrets.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ secrets.DOCKER_REGISTRY }}/regolo/${{ secrets.DOCKER_IMAGE_NAME }}:latest
-          docker push ${{ secrets.DOCKER_REGISTRY }}/regolo/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+          set -euo pipefail
+          REGISTRY="${{ secrets.DOCKER_REGISTRY }}"
+          REGISTRY="${REGISTRY#http://}"
+          REGISTRY="${REGISTRY#https://}"
+          REGISTRY="${REGISTRY%/}"
+
+          IMAGE_NAME="${{ secrets.DOCKER_IMAGE_NAME }}"
+          IMAGE_NAME="${IMAGE_NAME#/}"
+          IMAGE_NAME_LOWER=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
+
+          if [[ "${IMAGE_NAME_LOWER}" != */* ]]; then
+            IMAGE_PATH="regolo/${IMAGE_NAME_LOWER}"
+          else
+            IMAGE_PATH="${IMAGE_NAME_LOWER}"
+          fi
+
+          echo "Using registry: ${REGISTRY}"
+          echo "Using image path: ${IMAGE_PATH}"
+
+          docker build -t "${IMAGE_NAME_LOWER}:${{ github.sha }}" -f ./Dockerfile . --no-cache
+          docker tag "${IMAGE_NAME_LOWER}:${{ github.sha }}" "${REGISTRY}/${IMAGE_PATH}:dev"
+          docker push "${REGISTRY}/${IMAGE_PATH}:dev"
+
+      - name: Tag and push image as latest and numeric (only on v* tag)
+        if: startsWith(steps.vars.outputs.tag_name, 'v')
+        run: |
+          set -euo pipefail
+          REGISTRY="${{ secrets.DOCKER_REGISTRY }}"
+          REGISTRY="${REGISTRY#http://}"
+          REGISTRY="${REGISTRY#https://}"
+          REGISTRY="${REGISTRY%/}"
+
+          IMAGE_NAME="${{ secrets.DOCKER_IMAGE_NAME }}"
+          IMAGE_NAME="${IMAGE_NAME#/}"
+          IMAGE_NAME_LOWER=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
+
+          if [[ "${IMAGE_NAME_LOWER}" != */* ]]; then
+            IMAGE_PATH="regolo/${IMAGE_NAME_LOWER}"
+          else
+            IMAGE_PATH="${IMAGE_NAME_LOWER}"
+          fi
+
+          echo "Using registry: ${REGISTRY}"
+          echo "Using image path: ${IMAGE_PATH}"
+
+          docker build -t "${IMAGE_NAME_LOWER}:${{ github.sha }}" -f ./Dockerfile . --no-cache
+
+          # latest
+          docker tag "${IMAGE_NAME_LOWER}:${{ github.sha }}" "${REGISTRY}/${IMAGE_PATH}:latest"
+          docker push "${REGISTRY}/${IMAGE_PATH}:latest"
+
+          # numeric version tag (e.g., 0.1.0)
+          docker tag "${IMAGE_NAME_LOWER}:${{ github.sha }}" "${REGISTRY}/${IMAGE_PATH}:${{ steps.vars.outputs.num_tag }}"
+          docker push "${REGISTRY}/${IMAGE_PATH}:${{ steps.vars.outputs.num_tag }}"
 
       - name: Log out from external Docker registry
         run: docker logout ${{ secrets.DOCKER_REGISTRY }}
