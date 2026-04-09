@@ -1,0 +1,195 @@
+# Node.js (mymodel-cli-ts)
+**/node_modules/
+**/dist/
+*.tsbuildinfo
+
+# Rust
+target/
+**/*.rs.bk
+# Note: Cargo.lock should be committed for applications and workspace roots
+# Cargo.lock
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+__pycache__/
+.venv/
+pii_env/
+
+# Python build artifacts
+dist/
+build/
+*.egg-info/
+*.whl
+*.tar.gz
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+extproc-server
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dependency directories
+vendor/
+
+# Environment variables
+.env
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Project specific
+bin/
+tools/bin/
+
+# Model files (too large for git)
+*.pt
+*.pth
+*.bin
+*.onnx
+*.h5
+*/trained_model/*.pt
+*/trained_model/*.pth
+*/trained_model/*.bin
+*/trained_model/*.onnx
+*/trained_model/*.h5
+*/trained_model/*.json
+*/trained_model/*.txt
+*/models/*.pt
+*/models/*.pth
+*/models/*.bin
+*/models/*.onnx
+*/models/*.h5
+*/models/*.json
+*/models/*.txt
+# Allow README files in model directories
+!*/trained_model/README.md
+!*/models/README.md
+models
+# Exception for Go models package in dashboard backend
+!dashboard/backend/models/
+
+# Training data
+wikipedia_data/
+
+# Added by Claude Task Master
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+node_modules/
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# Task files
+tasks.json
+tasks/
+.cursor/
+.roo/
+.env.example
+.taskmasterconfig
+example_prd.txt
+.roomodes
+.windsurfrules
+scripts/prd.txt
+.env.taskmaster
+
+website/build
+.docusaurus
+spec/
+results/
+reports/
+
+.github/copilot*.md
+
+# AI tooling regulation docs
+# Ignore Copilot/Claude/Cursor rule docs anywhere in the repo
+**/[Cc]opilot*.md
+**/[Cc]laude*.md
+**/[Cc]ursor*.md
+.github/[Cc]laude*.md
+.github/[Cc]ursor*.md
+
+# Cursor editor rules files
+.cursorrules
+.cursorrules.*
+
+# augment editor rules
+.augment
+
+# Claude Code configuration (should not be committed)
+CLAUDE.md
+
+# Dashboard frontend (React + TypeScript + Vite)
+dashboard/frontend/node_modules/
+dashboard/frontend/dist/
+dashboard/frontend/build/
+dashboard/frontend/.vite/
+dashboard/frontend/*.local
+dashboard/frontend/test-results/
+dashboard/frontend/playwright-report/
+
+# Dashboard backend build artifacts
+dashboard/backend/dashboard-backend
+dashboard/backend/dashboard-backend.exe
+dashboard/backend/dashboard-server
+dashboard/backend/dashboard-server.exe
+
+# Dashboard backend runtime data (SQLite evaluation database)
+dashboard/backend/data/*
+!dashboard/backend/data/.gitignore
+
+# Keep old HTML backup for reference
+dashboard/frontend/index.html.old
+
+
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+
+# Kind cluster configuration
+tools/kind/kind-config.yaml
+FaithDial_dataset/
+FactCHD_dataset/
+
+# Trained model outputs (should use HuggingFace Hub or model registry)
+**/lora_*_model/
+**/lora_*_model_rust/
+*.safetensors
+
+.vllm-sr/
+
+# AWS deployment files (contain instance IPs and IDs)
+src/training/cache_embeddings/aws/vllm-instance-*.txt
+src/training/cache_embeddings/aws/vllm-inventory-*.ini
+
+# Dashboard Grafana configuration
+grafana/
+grafana-data/
+prometheus-data/
