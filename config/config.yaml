@@ -1,0 +1,251 @@
+# ─── Brick Configuration (v2 — NVIDIA Complexity) ────────────
+# Virtual multimodal routing model that exposes a single "brick" endpoint.
+# Detects modality (text/audio/image), preprocesses, and routes to 4 models on Regolo API.
+#
+# Routing pipeline: code detection (keyword + domain) + NVIDIA complexity for ALL queries.
+# 5 mutually exclusive decisions, no priority needed.
+
+# Virtual model identity — what clients see when calling /v1/models
+model:
+  name: "brick"
+  description: "Virtual multimodal routing model"
+
+# MyModel provider (for API key resolution in brick handler)
+providers:
+  regoloai:
+    type: openai-compatible
+    base_url: https://api.regolo.ai/v1
+
+# Brick multimodal gateway configuration
+brick:
+  enabled: true
+  stt_model: "faster-whisper-large-v3"
+  stt_endpoint: "https://api.regolo.ai/v1/audio/transcriptions"
+  ocr_model: "deepseek-ocr-2"
+  ocr_endpoint: "https://api.regolo.ai/v1/chat/completions"
+  vision_model: "qwen3.5-122b"
+  vision_endpoint: "https://api.regolo.ai/v1/chat/completions"
+  ocr_min_text_length: 10
+
+# Server configuration
+server_port: 8000
+
+# Auto model name — used internally when brick rewrites "brick" for the pipeline
+auto_model_name: "brick"
+
+# ─── Backend Models ─────────────────────────────────────────
+# 4 models, all served by Regolo API via a single provider profile
+
+provider_profiles:
+  regolo:
+    type: openai
+    base_url: https://api.regolo.ai/v1
+
+vllm_endpoints:
+  - name: "regolo"
+    provider_profile: "regolo"
+    weight: 1
+
+default_model: "qwen3.5-122b"
+
+model_config:
+  qwen3.5-9b:
+    preferred_endpoints: ["regolo"]
+    param_size: "9b"
+  qwen3-coder-next:
+    preferred_endpoints: ["regolo"]
+    param_size: "80b"
+  qwen3.5-122b:
+    preferred_endpoints: ["regolo"]
+    param_size: "122b"
+    reasoning_family: "qwen3"
+  minimax-m2.5:
+    preferred_endpoints: ["regolo"]
+    param_size: "400b"
+
+# ─── Reasoning Families ──────────────────────────────────────
+reasoning_families:
+  qwen3:
+    type: "chat_template_kwargs"
+    parameter: "enable_thinking"
+
+default_reasoning_effort: "medium"
+
+# ─── Domain Classifier (ModernBERT) ─────────────────────────
+# Runs locally in the container via Rust/Candle. Produces domain signals
+# consumed by type: "domain" conditions in decisions.
+classifier:
+  category_model:
+    model_id: "models/mom-domain-classifier"
+    use_modernbert: true
+    threshold: 0.45
+    use_cpu: true
+    category_mapping_path: "models/mom-domain-classifier/category_mapping.json"
+
+# ─── Qwen Complexity Service ─────────────────────────────────
+# Fine-tuned Qwen3.5-0.8B classifier running on localhost:8093.
+# Returns {"label": "easy|medium|hard", "confidence": 0.94} directly.
+complexity_service:
+  enabled: true
+  address: "172.19.0.1"
+  port: 8093
+  timeout_seconds: 5
+
+# ─── Signals: Keyword Rules ─────────────────────────────────
+# Only code detection keywords. All other routing is by NVIDIA complexity.
+keyword_rules:
+  - name: "code_keywords"
+    operator: "OR"
+    keywords:
+      # Programming languages (unambiguous)
+      - "python"
+      - "javascript"
+      - "typescript"
+      - "golang"
+      - "rust"
+      - "java"
+      # Generic coding terms (safe — rarely appear in economics/social text)
+      - "code"
+      - "debug"
+      - "refactor"
+      - "compile"
+      - "runtime"
+      - "recursion"
+      - "syntax"
+      - "exception"
+      # Data structures / types (mostly coding-specific in context)
+      - "variable"
+      - "dictionary"
+      - "array"
+      - "boolean"
+      - "integer"
+      - "pointer"
+      - "mutex"
+      # Database / query
+      - "sql"
+      - "schema"
+      - "relational"
+      # Script / automation
+      - "script"
+      - "bash"
+      - "shell"
+      # Coding-specific verbs / phrases (lower false-positive risk than bare nouns)
+      - "program"
+      - "write a function"
+      - "function that"
+      - "class called"
+      # Miscellaneous unambiguous coding tokens
+      - "loop"
+      - "null"
+      - "async"
+      - "thread"
+      - "sorting"
+      - "append"
+      - "directed graph"
+      - "weighted graph"
+    case_sensitive: false
+
+# ─── Decisions ───────────────────────────────────────────────
+# 5 mutually exclusive decisions. No priority needed.
+# Coding: (keyword OR domain) AND complexity level
+# General: NOT(keyword OR domain) AND complexity level
+decisions:
+  # ═══ CODING: easy/medium complexity → qwen-coder-next ═══
+  - name: "coding_easy"
+    description: "Coding easy/medium → qwen-coder-next"
+    rules:
+      operator: "AND"
+      conditions:
+        - operator: "OR"
+          conditions:
+            - type: "keyword"
+              name: "code_keywords"
+            - type: "domain"
+              name: "computer science"
+        - operator: "OR"
+          conditions:
+            - type: "complexity"
+              name: "complexity:easy"
+            - type: "complexity"
+              name: "complexity:medium"
+    modelRefs:
+      - model: "qwen3-coder-next"
+        use_reasoning: false
+
+  # ═══ CODING: hard complexity → minimax ═══
+  - name: "coding_hard"
+    description: "Coding hard → minimax"
+    rules:
+      operator: "AND"
+      conditions:
+        - operator: "OR"
+          conditions:
+            - type: "keyword"
+              name: "code_keywords"
+            - type: "domain"
+              name: "computer science"
+        - type: "complexity"
+          name: "complexity:hard"
+    modelRefs:
+      - model: "minimax-m2.5"
+        use_reasoning: false
+
+  # ═══ GENERAL: NOT coding, easy → qwen3.5-9b ═══
+  - name: "general_easy"
+    description: "Non-coding easy → qwen3.5-9b"
+    rules:
+      operator: "AND"
+      conditions:
+        - operator: "NOT"
+          conditions:
+            - operator: "OR"
+              conditions:
+                - type: "keyword"
+                  name: "code_keywords"
+                - type: "domain"
+                  name: "computer science"
+        - type: "complexity"
+          name: "complexity:easy"
+    modelRefs:
+      - model: "qwen3.5-9b"
+        use_reasoning: false
+
+  # ═══ GENERAL: NOT coding, medium → qwen3.5-122b ═══
+  - name: "general_medium"
+    description: "Non-coding medium → qwen3.5-122b"
+    rules:
+      operator: "AND"
+      conditions:
+        - operator: "NOT"
+          conditions:
+            - operator: "OR"
+              conditions:
+                - type: "keyword"
+                  name: "code_keywords"
+                - type: "domain"
+                  name: "computer science"
+        - type: "complexity"
+          name: "complexity:medium"
+    modelRefs:
+      - model: "qwen3.5-122b"
+        use_reasoning: false
+
+  # ═══ GENERAL: NOT coding, hard → minimax ═══
+  - name: "general_hard"
+    description: "Non-coding hard → minimax"
+    rules:
+      operator: "AND"
+      conditions:
+        - operator: "NOT"
+          conditions:
+            - operator: "OR"
+              conditions:
+                - type: "keyword"
+                  name: "code_keywords"
+                - type: "domain"
+                  name: "computer science"
+        - type: "complexity"
+          name: "complexity:hard"
+    modelRefs:
+      - model: "minimax-m2.5"
+        use_reasoning: false

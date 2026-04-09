@@ -1,0 +1,74 @@
+name: Build & Push brick-complexity-server
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["deploy", "main"]
+    paths:
+      - "deploy/addons/brick-complexity-server/**"
+      - ".github/workflows/brick-complexity-server.yml"
+  pull_request:
+    paths:
+      - "deploy/addons/brick-complexity-server/**"
+      - ".github/workflows/brick-complexity-server.yml"
+
+concurrency:
+  group: brick-complexity-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: brick-complexity-server
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./deploy/addons/brick-complexity-server
+          file: ./deploy/addons/brick-complexity-server/Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=brick-complexity
+          cache-to: type=gha,mode=max,scope=brick-complexity
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "### brick-complexity-server build" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tags**: ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Platform**: linux/amd64" >> $GITHUB_STEP_SUMMARY

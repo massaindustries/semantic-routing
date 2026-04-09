@@ -1,0 +1,42 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches:
+      - 'deploy'
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to external Docker registry
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login ${{ secrets.DOCKER_REGISTRY }} -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Set image tag
+        id: vars
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG_NAME="${GITHUB_REF##*/}"
+            echo "is_tag=true" >> $GITHUB_OUTPUT
+          else
+            TAG_NAME="dev"
+            echo "is_tag=false" >> $GITHUB_OUTPUT
+          fi
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Tag and push image as latest (only on tag)
+        if: steps.vars.outputs.is_tag == 'true'
+        run: |
+          echo ${{ secrets.DOCKER_IMAGE_NAME }}
+          docker build -t ${{ secrets.DOCKER_IMAGE_NAME }}:${{ github.sha }} -f ./Dockerfile . --no-cache
+          docker tag ${{ secrets.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ secrets.DOCKER_REGISTRY }}/regolo/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+          docker push ${{ secrets.DOCKER_REGISTRY }}/regolo/${{ secrets.DOCKER_IMAGE_NAME }}:latest
+
+      - name: Log out from external Docker registry
+        run: docker logout ${{ secrets.DOCKER_REGISTRY }}
