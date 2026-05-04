@@ -16,8 +16,8 @@
 #   BRICK_CC_HOST_PORT      mymodel port on host, default 18000
 
 x-images:
-  classifier-image: &classifier-image ghcr.io/regolo-ai/brick-cc-classifier:${BRICK_CC_TAG:-latest}
-  mymodel-image:    &mymodel-image    ghcr.io/regolo-ai/brick-cc-mymodel:${BRICK_CC_TAG:-latest}
+  classifier-image: &classifier-image ghcr.io/massaindustries/brick-cc-classifier:${BRICK_CC_TAG:-latest}
+  mymodel-image:    &mymodel-image    ghcr.io/massaindustries/brick-cc-mymodel:${BRICK_CC_TAG:-latest}
 
 services:
   classifier:
