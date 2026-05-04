@@ -1,0 +1,76 @@
+name: Publish brick-cc images
+
+# Builds the two images consumed by deploy/installers/windows/setup.ps1
+# and publishes them to GHCR. Triggered on:
+#   - git tag v*    → tags `:latest` and `:<version>`
+#   - manual dispatch with `tag` input
+#
+# The images are amd64-only on purpose: the classifier needs cu121 wheels and
+# the Windows installer targets amd64 hosts. Add arm64 only when there is a
+# reproducible torch wheel story for it.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to publish (e.g. dev, rc1)'
+        required: true
+        default: 'dev'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: brick-cc-mymodel
+            context: .
+            dockerfile: ./Dockerfile
+          - image: brick-cc-classifier
+            context: ./deploy/addons/brick-complexity-server
+            dockerfile: ./deploy/addons/brick-complexity-server/Dockerfile.gpu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve tags
+        id: tags
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${OWNER_LC}/${{ matrix.image }}"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VER="${GITHUB_REF_NAME#v}"
+            echo "tags=${IMAGE}:latest,${IMAGE}:${VER}" >> "$GITHUB_OUTPUT"
+          else
+            VER="${{ inputs.tag }}"
+            echo "tags=${IMAGE}:${VER}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max

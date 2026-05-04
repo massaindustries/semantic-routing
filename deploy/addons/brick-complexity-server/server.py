@@ -16,7 +16,9 @@ Usage:
 """
 
 import argparse
+import hmac
 import logging
+import os
 import time
 
 import torch
@@ -113,6 +115,20 @@ class BrickComplexityServer:
 
 
 server_instance: BrickComplexityServer | None = None
+expected_token: str = ""
+
+
+@web.middleware
+async def auth_middleware(request, handler):
+    # /health stays open for probes; /classify is the only authenticated endpoint
+    if expected_token and request.path == "/classify":
+        header = request.headers.get("Authorization", "")
+        prefix = "Bearer "
+        if not header.startswith(prefix) or not hmac.compare_digest(
+            header[len(prefix):], expected_token
+        ):
+            return web.json_response({"error": "unauthorized"}, status=401)
+    return await handler(request)
 
 
 async def handle_classify(request):
@@ -148,7 +164,7 @@ async def handle_health(request):
 
 
 def main():
-    global server_instance
+    global server_instance, expected_token
 
     parser = argparse.ArgumentParser(
         description="Brick Complexity Extractor Server"
@@ -157,11 +173,24 @@ def main():
     parser.add_argument(
         "--device", type=str, default="auto", choices=["auto", "cuda", "cpu"]
     )
+    parser.add_argument(
+        "--bearer-token",
+        type=str,
+        default="",
+        help="If set (or BRICK_CLASSIFIER_TOKEN env var), /classify requires "
+             "Authorization: Bearer <token>. /health stays open.",
+    )
     args = parser.parse_args()
+
+    expected_token = args.bearer_token or os.environ.get("BRICK_CLASSIFIER_TOKEN", "")
+    if expected_token:
+        logger.info("Bearer auth enabled on /classify")
+    else:
+        logger.warning("No bearer token set — /classify is unauthenticated")
 
     server_instance = BrickComplexityServer(device=args.device)
 
-    app = web.Application()
+    app = web.Application(middlewares=[auth_middleware])
     app.router.add_post("/classify", handle_classify)
     app.router.add_get("/health", handle_health)
 

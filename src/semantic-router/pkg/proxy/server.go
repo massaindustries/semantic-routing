@@ -43,9 +43,11 @@ func (s *Server) Start(ctx context.Context) error {
 	// Register routes
 	mux.HandleFunc("/v1/chat/completions", s.handleChatCompletions)
 	mux.HandleFunc("/v1/responses", s.handleChatCompletions) // Response API
+	mux.HandleFunc("/v1/messages", s.handleAnthropicMessages) // Anthropic-native pass-through
 	mux.HandleFunc("/v1/models", s.handleModels)
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/v1/routing/test", s.handleRoutingTest)
+	mux.HandleFunc("/api/v1/diag/classifier", s.handleDiagClassifier)
 
 	// Wrap with CORS middleware
 	handler := corsMiddleware(mux)
@@ -57,6 +59,10 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	logging.Infof("MyModel proxy server starting on port %d", s.port)
+	if cfg := s.router.Config; cfg != nil && cfg.AnthropicPassthrough.Enabled {
+		logging.Infof("AnthropicPassthrough: /v1/messages enabled, upstream=%s",
+			cfg.AnthropicPassthrough.EffectiveUpstreamURL())
+	}
 
 	// Run server in goroutine
 	errCh := make(chan error, 1)

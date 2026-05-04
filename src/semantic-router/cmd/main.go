@@ -15,6 +15,7 @@ import (
 
 	candle_binding "github.com/vllm-project/semantic-router/candle-binding"
 	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/apiserver"
+	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/complexityserver"
 	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/config"
 	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/extproc"
 	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/k8s"
@@ -82,6 +83,16 @@ func main() {
 	// Ensure required models are downloaded
 	if modelErr := ensureModelsDownloaded(cfg); modelErr != nil {
 		logging.Fatalf("Failed to ensure models are downloaded: %v", modelErr)
+	}
+
+	// Auto-spawn the brick-complexity classifier server if configured.
+	// On shutdown, the deferred Stop sends SIGTERM to the child process.
+	complexityProc, err := complexityserver.EnsureRunning(cfg.ComplexityService)
+	if err != nil {
+		logging.Warnf("ComplexityServer auto-spawn failed: %v (router will fall back to medium)", err)
+	}
+	if complexityProc != nil {
+		defer complexityProc.Stop()
 	}
 
 	// If download-only mode, exit after downloading models

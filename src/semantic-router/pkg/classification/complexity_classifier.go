@@ -7,17 +7,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/config"
 	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/observability/logging"
+	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/observability/metrics"
 )
 
 // NvidiaComplexityClassifier calls the external complexity classifier service
 // and maps the response directly to a discrete label.
 type NvidiaComplexityClassifier struct {
-	httpClient *http.Client
-	baseURL    string
+	httpClient  *http.Client
+	baseURL     string
+	bearerToken string
 }
 
 // complexityClassifyResponse is the JSON response from the complexity service.
@@ -28,25 +31,40 @@ type complexityClassifyResponse struct {
 
 // NewNvidiaComplexityClassifier creates a new classifier that calls the complexity service.
 func NewNvidiaComplexityClassifier(cfg *config.ComplexityServiceConfig) (*NvidiaComplexityClassifier, error) {
-	if cfg.Address == "" {
-		return nil, fmt.Errorf("complexity service address is required")
-	}
-	if cfg.Port == 0 {
-		cfg.Port = 8093
-	}
-
 	timeout := 5 * time.Second
 	if cfg.TimeoutSeconds > 0 {
 		timeout = time.Duration(cfg.TimeoutSeconds) * time.Second
 	}
 
-	baseURL := fmt.Sprintf("http://%s:%d", cfg.Address, cfg.Port)
+	var baseURL string
+	if cfg.BaseURL != "" {
+		baseURL = strings.TrimRight(cfg.BaseURL, "/")
+	} else {
+		if cfg.Address == "" {
+			return nil, fmt.Errorf("complexity service address or base_url is required")
+		}
+		if cfg.Port == 0 {
+			cfg.Port = 8093
+		}
+		baseURL = fmt.Sprintf("http://%s:%d", cfg.Address, cfg.Port)
+	}
 
-	logging.Infof("[ComplexityClassifier] Initialized: endpoint=%s, timeout=%v", baseURL, timeout)
+	bearerToken, err := cfg.ResolveBearerToken()
+	if err != nil {
+		return nil, fmt.Errorf("resolve bearer token: %w", err)
+	}
+
+	authNote := "no-auth"
+	if bearerToken != "" {
+		authNote = "bearer"
+	}
+	logging.Infof("[ComplexityClassifier] Initialized: endpoint=%s, timeout=%v, auth=%s",
+		baseURL, timeout, authNote)
 
 	return &NvidiaComplexityClassifier{
-		httpClient: &http.Client{Timeout: timeout},
-		baseURL:    baseURL,
+		httpClient:  &http.Client{Timeout: timeout},
+		baseURL:     baseURL,
+		bearerToken: bearerToken,
 	}, nil
 }
 
@@ -54,6 +72,9 @@ func NewNvidiaComplexityClassifier(cfg *config.ComplexityServiceConfig) (*Nvidia
 // Returns a single-element slice like ["complexity:hard"].
 // On error or timeout, falls back to ["complexity:medium"].
 func (c *NvidiaComplexityClassifier) Classify(query string) ([]string, error) {
+	start := time.Now()
+	defer func() { metrics.BrickCCClassifyDuration.Observe(time.Since(start).Seconds()) }()
+
 	body, err := json.Marshal(map[string]string{"text": query})
 	if err != nil {
 		return c.fallback("failed to marshal request"), nil
@@ -67,6 +88,9 @@ func (c *NvidiaComplexityClassifier) Classify(query string) ([]string, error) {
 		return c.fallback("failed to create request"), nil
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if c.bearerToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.bearerToken)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -98,5 +122,6 @@ func (c *NvidiaComplexityClassifier) Classify(query string) ([]string, error) {
 // fallback logs a warning and returns "complexity:medium" as a safe default.
 func (c *NvidiaComplexityClassifier) fallback(reason string) []string {
 	logging.Warnf("[ComplexityClassifier] Fallback to medium: %s", reason)
+	metrics.BrickCCClassifyFallback.Inc()
 	return []string{"complexity:medium"}
 }

@@ -87,13 +87,39 @@ classifier:
     category_mapping_path: "models/mom-domain-classifier/category_mapping.json"
 
 # ─── Qwen Complexity Service ─────────────────────────────────
-# Fine-tuned Qwen3.5-0.8B classifier (regolo/brick-complexity-extractor) on port 8094.
-# Returns {"label": "easy|medium|hard", "confidence": 0.94} directly.
+# Fine-tuned Qwen3.5-0.8B classifier (regolo/brick-complexity-extractor).
+# Deployato su l40s-dev (SkyPilot/Seeweb) con --device cuda + bearer auth.
+# Esposto via SSH tunnel locale: 127.0.0.1:18094 -> l40s-dev:8094.
+# Avvia tunnel con scripts/start-classifier-tunnel.sh.
 complexity_service:
   enabled: true
-  address: "172.19.0.1"
-  port: 8094
-  timeout_seconds: 5
+  base_url: "http://127.0.0.1:18094"
+  bearer_token_file: "/root/.brick_classifier_token"
+  timeout_seconds: 8       # GPU + tunnel <500ms tipico, margine generoso
+  auto_spawn: false        # classifier remoto, niente Python locale
+
+# ─── Anthropic Pass-through (Claude Code → Brick → api.anthropic.com) ───
+# Esposto come endpoint POST /v1/messages. Brick classifica difficoltà del
+# prompt e riscrive solo il campo `model` prima di forwardare a Anthropic
+# mantenendo Authorization e tutti gli altri headers del client invariati.
+anthropic_passthrough:
+  enabled: true
+  upstream_url: "https://api.anthropic.com"
+  # extra_usage_enabled: metti true SOLO se il tuo account Anthropic ha il
+  # tier "extra-usage" pagato (necessario per 1M context). Default false →
+  # Brick rimuove l'header context-1m-* e tutto resta su contesto 200K.
+  extra_usage_enabled: false
+  context_1m_threshold_bytes: 600000
+  model_map:
+    easy: "claude-haiku-4-5"
+    medium: "claude-sonnet-4-6"
+    hard: "claude-opus-4-7"
+  # Mappatura usata SOLO quando 1M attivo (extra_usage_enabled=true e prompt
+  # supera la soglia). Haiku non ha variante 1M → easy passa a Sonnet.
+  model_map_1m:
+    easy: "claude-sonnet-4-6"
+    medium: "claude-sonnet-4-6"
+    hard: "claude-opus-4-7"
 
 # ─── Signals: Keyword Rules ─────────────────────────────────
 # Only code detection keywords. All other routing is by NVIDIA complexity.

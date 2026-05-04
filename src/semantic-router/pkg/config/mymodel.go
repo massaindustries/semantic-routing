@@ -122,6 +122,7 @@ type MyModelExtension struct {
 	TextRoutes     []TextRoute                  `yaml:"text_routes,omitempty"`
 	ServerPort     int                          `yaml:"server_port,omitempty"`
 	Brick          BrickConfig                  `yaml:"brick,omitempty"`
+	AnthropicPassthrough AnthropicPassthroughConfig `yaml:"anthropic_passthrough,omitempty"`
 }
 
 // envVarPattern matches ${VAR_NAME} patterns for environment variable resolution.

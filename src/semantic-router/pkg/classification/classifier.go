@@ -462,6 +462,17 @@ func withContextClassifier(contextClassifier *ContextClassifier) option {
 	}
 }
 
+// ClassifyComplexity exposes the underlying NVIDIA complexity classifier for
+// callers outside the routing pipeline (e.g. the Anthropic pass-through proxy).
+// Returns nil-safe: an empty slice if no classifier is configured.
+func (c *Classifier) ClassifyComplexity(text string) []string {
+	if c == nil || c.complexityClassifier == nil {
+		return nil
+	}
+	labels, _ := c.complexityClassifier.Classify(text)
+	return labels
+}
+
 func withComplexityClassifier(complexityClassifier *NvidiaComplexityClassifier) option {
 	return func(c *Classifier) {
 		c.complexityClassifier = complexityClassifier

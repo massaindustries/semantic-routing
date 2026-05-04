@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -2739,6 +2740,61 @@ type ComplexityServiceConfig struct {
 	Address        string `yaml:"address"`
 	Port           int    `yaml:"port"`
 	TimeoutSeconds int    `yaml:"timeout_seconds,omitempty"` // Default: 5
+
+	// BaseURL, if set, fully overrides Address+Port and the http:// scheme.
+	// Use it to point at a remote bearer-protected endpoint, e.g.
+	// "http://127.0.0.1:18094" (SSH tunnel) or "https://classifier.example.com".
+	BaseURL string `yaml:"base_url,omitempty"`
+
+	// BearerToken is the literal token value sent as `Authorization: Bearer ...`.
+	// Prefer BearerTokenFile to keep the token out of the YAML.
+	BearerToken string `yaml:"bearer_token,omitempty"`
+
+	// BearerTokenFile is the path to a file whose trimmed contents are the
+	// bearer token. Read once at classifier construction time.
+	BearerTokenFile string `yaml:"bearer_token_file,omitempty"`
+
+	// AutoSpawn controls whether mymodel auto-launches the brick-complexity
+	// classifier server (Python) at startup if no service is already
+	// listening on the configured port. Default: true. Forced off when
+	// BaseURL is set (remote classifier is the operator's responsibility).
+	AutoSpawn *bool `yaml:"auto_spawn,omitempty"`
+
+	// ScriptPath is the path to brick-complexity-server/server.py used by
+	// AutoSpawn. Empty falls back to a list of well-known locations
+	// relative to the current working directory.
+	ScriptPath string `yaml:"script_path,omitempty"`
+
+	// Device passed to the spawned classifier server (auto|cpu|cuda).
+	// Default: "auto".
+	Device string `yaml:"device,omitempty"`
+}
+
+// AutoSpawnEnabled reports whether auto-spawn is on. The default is true when
+// AutoSpawn is unset, opt-out by setting `auto_spawn: false` in YAML.
+func (c *ComplexityServiceConfig) AutoSpawnEnabled() bool {
+	return c.AutoSpawn == nil || *c.AutoSpawn
+}
+
+// ResolveBearerToken returns the effective bearer token. Lookup order:
+//  1. BearerToken (literal). Goes through os.ExpandEnv so a value like
+//     "${BRICK_CLASSIFIER_TOKEN}" resolves at startup — useful for Docker
+//     compose deployments that inject the token via environment.
+//  2. BearerTokenFile (path). Trimmed contents.
+//
+// Returns empty string with no error when neither is set (auth disabled).
+func (c *ComplexityServiceConfig) ResolveBearerToken() (string, error) {
+	if c.BearerToken != "" {
+		return strings.TrimSpace(os.ExpandEnv(c.BearerToken)), nil
+	}
+	if c.BearerTokenFile == "" {
+		return "", nil
+	}
+	b, err := os.ReadFile(c.BearerTokenFile)
+	if err != nil {
+		return "", fmt.Errorf("read bearer_token_file %q: %w", c.BearerTokenFile, err)
+	}
+	return strings.TrimSpace(string(b)), nil
 }
 
 // ModelReasoningControl represents reasoning mode control on model level
