@@ -1,0 +1,154 @@
+% =============================================================================
+%  Routing Results -- Brick routing results on Dataset A.
+%  Include-ready LaTeX section: no documentclass, no preamble, no bibliography.
+% =============================================================================
+
+\section{Routing Results}
+\label{sec:routing-results}
+
+This section reports routing-system results on Dataset~A. The present revision
+discusses only the Brick router. Additional routing baselines can be added to
+this file in later revisions, but they are intentionally omitted here to keep
+the interpretation focused on Brick's calibrated preference profiles.
+
+\subsection{Brick Experimental Protocol}
+\label{sec:routers-brick-protocol}
+
+Brick is evaluated on all \(5{,}504\) Dataset~A rows using the locked production
+configuration described in the companion algorithm section. The reported
+numbers use stratified 5-fold out-of-fold skill-vector calibration:
+for each fold, the router's per-model capability table is calibrated on the
+other four folds and evaluated on the held-out fold. The routing hyperparameters
+are not re-selected inside this full-dataset evaluation; they are fixed from
+prior development.
+
+This protocol uses the entire dataset while avoiding per-example leakage in the
+skill-vector estimates. It should be read as a calibrated in-domain evaluation,
+not as a zero-shot result and not as validation on an independent external
+benchmark. No target model weights are updated.
+
+\subsection{Brick Preference Profiles}
+\label{sec:routers-brick-profiles}
+
+The Brick router exposes a continuous routing preference \(r\in[-1,1]\). We
+evaluate five operating points:
+\[
+  r\in\{-1.0,-0.5,0.0,+0.5,+1.0\}.
+\]
+The endpoints correspond to named user profiles:
+\[
+  \mathrm{min}\equiv -1.0,\qquad
+  \mathrm{neutral}\equiv 0.0,\qquad
+  \mathrm{max}\equiv +1.0.
+\]
+The \texttt{min} profile prioritizes cost reduction, the \texttt{neutral}
+profile targets the calibrated quality-price compromise, and the \texttt{max}
+profile prioritizes answer quality by strongly relaxing cost pressure.
+
+\subsection{Full-Dataset Results}
+\label{sec:routers-brick-results}
+
+Table~\ref{tab:brick-routing-oof-results} reports Brick's full-dataset
+out-of-fold routing curve. The primary quality metric is selected-answer
+accuracy: a routed query is counted correct if the model selected by the router
+solves the query. Route-exact accuracy is reported separately; it measures
+agreement with the cheapest-correct label and therefore penalizes intentional
+over-routing to stronger models.
+
+\begin{table}[ht]
+\centering
+\caption{Brick routing results on all \(5{,}504\) Dataset~A rows using locked
+production hyperparameters and stratified 5-fold out-of-fold skill calibration.
+The distribution column reports selected-model percentages as
+qwen/deepseek/kimi.}
+\label{tab:brick-routing-oof-results}
+\small
+\begin{tabular}{l r r r r l}
+\toprule
+\textbf{Profile} & \textbf{\(r\)} & \textbf{Selected answer} &
+\textbf{95\% CI} & \textbf{Avg. cost} & \textbf{Distribution} \\
+\midrule
+min     & -1.0 & 63.17\% & \(\pm 1.27\) pp & 0.100 & 100/0/0 \\
+low     & -0.5 & 63.17\% & \(\pm 1.27\) pp & 0.100 & 100/0/0 \\
+neutral & \phantom{-}0.0 & 68.46\% & \(\pm 1.23\) pp & 0.192 & 71/25/3 \\
+high    & +0.5 & 74.18\% & \(\pm 1.16\) pp & 0.359 & 25/59/16 \\
+max     & +1.0 & \textbf{76.98\%} & \(\pm 1.11\) pp & 0.537 & 0/31/69 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Route-exact accuracy for the same Brick profiles. Route-exact accuracy
+matches the cheapest-correct label, so it is aligned with economy routing but
+not with the max-performance objective.}
+\label{tab:brick-routing-route-exact}
+\small
+\begin{tabular}{l r r}
+\toprule
+\textbf{Profile} & \textbf{\(r\)} & \textbf{Route-exact accuracy} \\
+\midrule
+min     & -1.0 & 63.17\% \\
+low     & -0.5 & 63.17\% \\
+neutral & \phantom{-}0.0 & 60.10\% \\
+high    & +0.5 & 37.39\% \\
+max     & +1.0 & 17.84\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:brick-routing-baseline-context} gives the single-model and oracle
+context for interpreting Table~\ref{tab:brick-routing-oof-results}. These rows
+are not routing algorithms; they are reference points for the attainable
+response-accuracy range within the three-model pool.
+
+\begin{table}[ht]
+\centering
+\caption{Full-dataset context baselines for Dataset~A. The oracle row counts a
+query as solved if any model in the pool solves it.}
+\label{tab:brick-routing-baseline-context}
+\small
+\begin{tabular}{l r r}
+\toprule
+\textbf{Reference} & \textbf{Selected answer} & \textbf{Avg. cost} \\
+\midrule
+always \texttt{qwen3.5-9b}        & 63.17\% & 0.100 \\
+always \texttt{deepseek-v4-flash} & 73.69\% & 0.400 \\
+always \texttt{kimi2.6}           & 75.02\% & 0.600 \\
+three-model oracle                & 83.25\% & n/a \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Discussion}
+\label{sec:routers-brick-discussion}
+
+The \texttt{min} profile collapses to the cheapest-model baseline: it selects
+\texttt{qwen3.5-9b} for every query, obtaining \(63.17\%\) selected-answer
+accuracy at normalized cost \(0.100\). This is the intended behaviour for the
+lowest-cost setting: the router suppresses over-capacity and cost-insensitive
+escalation.
+
+The \texttt{neutral} profile increases selected-answer accuracy to \(68.46\%\),
+a \(+5.29\) percentage-point gain over \texttt{min}, while increasing average
+cost from \(0.100\) to \(0.192\). Operationally, this is the quality-price
+compromise profile: it still routes \(71\%\) of queries to the cheapest model,
+but uses \texttt{deepseek-v4-flash} on roughly one quarter of the corpus and
+\texttt{kimi2.6} on a small tail of high-requirement queries.
+
+The \texttt{high} and \texttt{max} profiles show the intended aggressive scaling
+of the preference knob. At \texttt{high}, Brick reaches \(74.18\%\), close to
+the best single-model baselines, while still selecting \texttt{qwen3.5-9b} on
+about one quarter of the dataset. At \texttt{max}, Brick reaches
+\(\mathbf{76.98\%}\), exceeding the best single-model baseline,
+\texttt{kimi2.6} at \(75.02\%\), by \(+1.96\) percentage points. The remaining
+gap to the \(83.25\%\) three-model oracle is the residual routing opportunity
+not captured by the current feature representation and decision rule.
+
+The route-exact curve should be interpreted differently from selected-answer
+accuracy. Route-exact accuracy falls from \(63.17\%\) at \texttt{min} to
+\(17.84\%\) at \texttt{max}, not because the max profile fails to answer, but
+because it intentionally chooses stronger models even when a cheaper model would
+also be correct. For performance-first routing, selected-answer accuracy is the
+appropriate metric; for economy-first routing, route-exact accuracy is a useful
+diagnostic of cheapest-correct matching.

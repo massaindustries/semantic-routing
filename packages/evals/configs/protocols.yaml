@@ -1,0 +1,94 @@
+# Evaluation protocols - mapping expected_protocol_id -> {type, judge, runner, rubric}
+# Usato per fasi successive (inference + correct calculation), qui solo metadata
+
+ifeval_constraint_check:
+  type: programmatic
+  description: "IFEval/IFBench constraint compliance check (e.g., word count, format, language)"
+  runner: "google_research/ifeval verifiable_instructions"
+  expected_payload_schema:
+    instruction_id_list: list[str]
+    kwargs: dict
+  notes: "Programmatic check, no LLM needed"
+
+lcb_unit_test:
+  type: code_execution
+  description: "LiveCodeBench unit test runner"
+  runner: "livecodebench native runner (sandbox)"
+  expected_payload_schema:
+    public_tests: list[dict]
+    private_tests: list[dict]  # may be hashed
+    fn_name: str
+    starter_code: str
+  notes: "Esegue codice in sandbox isolato, match output"
+
+math_equiv:
+  type: math_equivalence
+  description: "Math expression equivalence (sympy / latex parse)"
+  runner: "sympy + latex2sympy fallback"
+  expected_payload_schema:
+    final_answer: str  # latex or numeric
+    solution_latex: str
+  notes: "Tolerance per cifre significative"
+
+gsm8k_final_answer:
+  type: exact_match
+  description: "GSM8K final answer exact match (numero dopo ####)"
+  runner: "regex extract '#### (\\d+)'"
+  expected_payload_schema:
+    final_answer: str  # numerico
+    solution_text: str
+  notes: "GSM8K usa formato '#### NUMBER'"
+
+llm_judge_factual:
+  type: llm_judge
+  description: "SimpleQA-style factual grading (correct/incorrect/not-attempted)"
+  judge_model: "gpt-4o or claude-sonnet-4-7"
+  judge_prompt_id: simpleqa_judge
+  expected_payload_schema:
+    answer: str
+  notes: "OpenAI grader prompt, fuori-pool"
+
+mcq_letter:
+  type: exact_match
+  description: "Multiple choice letter match (A/B/C/D...)"
+  runner: "regex extract last 'Risposta: ([A-Z])'"
+  expected_payload_schema:
+    answer_letter: str
+    answer_idx: int
+  notes: null
+
+rubric_judge:
+  type: llm_judge_rubric
+  description: "Creative writing rubric-based judging"
+  judge_model: "claude-sonnet-4-7 or gpt-4o"
+  judge_prompt_id: creative_rubric
+  expected_payload_schema:
+    rubric_id: str
+    judge: str  # "rubric"
+  notes: "Rubric per creative writing: coherence, originality, prose quality, prompt adherence"
+
+tool_call_match:
+  type: tool_call_match
+  description: "BFCL function call match (AST-level comparison)"
+  runner: "BFCL native checker (gorilla-llm)"
+  expected_payload_schema:
+    ground_truth_calls: list[dict]
+  notes: null
+
+tool_call_trajectory:
+  type: tool_call_trajectory
+  description: "tau-bench multi-step trajectory match"
+  runner: "tau-bench native env (Python sim)"
+  expected_payload_schema:
+    task_id: str
+    tools_available: list[str]
+  notes: "Richiede esecuzione in env simulato"
+
+gaia_exact_match:
+  type: gaia_exact_match
+  description: "GAIA exact match con normalization"
+  runner: "GAIA native scorer"
+  expected_payload_schema:
+    final_answer: str
+    level: int
+  notes: "GAIA ha normalization specifica (numeri, liste, etc.)"

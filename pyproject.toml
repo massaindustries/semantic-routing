@@ -1,0 +1,38 @@
+[project]
+name = "brick-workspace"
+version = "2.0.0"
+description = "Brick monorepo Python workspace (training, evals, datasets)"
+requires-python = ">=3.10"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+
+[tool.uv.workspace]
+members = [
+    "packages/training",
+    "packages/evals",
+    "packages/datasets",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    "E501",  # line-too-long (handled by formatter)
+    "B008",  # function-call-in-default-argument (common in argparse)
+]
+
+[tool.pytest.ini_options]
+testpaths = ["packages/evals/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+"""
+Brick Complexity Extractor Server
+
+Loads regolo/brick-complexity-2-eco (LoRA on Qwen3.5-0.8B) for query complexity
+classification into easy/medium/hard.
+
+Endpoints:
+  POST /classify  {"text": "..."} → {"label": "hard", "confidence": 0.9412}
+  GET  /health    → {"status": "ok", "model": "regolo/brick-complexity-2-eco"}
+
+Usage:
+  python server.py --port 8093
+  python server.py --port 8093 --device cpu
+  python server.py --port 8093 --device cuda
+"""
+
+import argparse
+import hmac
+import logging
+import os
+import time
+
+import torch
+import torch.nn.functional as F
+from aiohttp import web
+from peft import PeftModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+DEFAULT_MODEL_ID = "regolo/brick-complexity-2-eco"
+DEFAULT_BASE_MODEL_ID = "Qwen/Qwen3.5-0.8B"
+
+LABELS = ["easy", "medium", "hard"]
+
+SYSTEM_PROMPT = (
+    "You are a query complexity classifier for an LLM routing system. "
+    "Classify the following query into exactly one category:\n"
+    "- easy: Simple factual recall, 1-2 reasoning steps, basic knowledge\n"
+    "- medium: Moderate analysis, 3-5 reasoning steps, domain familiarity needed\n"
+    "- hard: Complex multi-step reasoning, expert knowledge, synthesis across domains\n\n"
+    "Respond with only the label: easy, medium, or hard."
+)
+
+
+class BrickComplexityServer:
+    def __init__(self, model_id=DEFAULT_MODEL_ID, base_model_id=DEFAULT_BASE_MODEL_ID, device="auto"):
+        self.model_id = model_id
+        self.base_model_id = base_model_id
+
+        if device == "auto":
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device = torch.device(device)
+
+        dtype = torch.bfloat16 if self.device.type == "cuda" else torch.float32
+
+        logger.info(f"Loading base model {self.base_model_id} on {self.device} ({dtype})...")
+        start = time.time()
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.base_model_id, trust_remote_code=True
+        )
+
+        base_model = AutoModelForCausalLM.from_pretrained(
+            self.base_model_id,
+            torch_dtype=dtype,
+            trust_remote_code=True,
+        )
+
+        logger.info(f"Loading LoRA adapter {self.model_id}...")
+        self.model = PeftModel.from_pretrained(base_model, self.model_id)
+        self.model.to(self.device)
+        self.model.eval()
+
+        # Pre-compute token IDs for label extraction
+        self.label_ids = {
+            label: self.tokenizer.encode(label, add_special_tokens=False)[0]
+            for label in LABELS
+        }
+
+        elapsed = time.time() - start
+        logger.info(
+            f"Model loaded in {elapsed:.1f}s on {self.device} "
+            f"(label_ids: {self.label_ids})"
+        )
+
+    def classify(self, text: str) -> dict:
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": f"Classify: {text}"},
+        ]
+
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = self.tokenizer(
+            prompt, return_tensors="pt", add_special_tokens=False
+        ).to(self.device)
+
+        with torch.no_grad():
+            logits = self.model(**inputs).logits[0, -1, :]
+
+        label_logits = torch.tensor(
+            [logits[self.label_ids[l]].float() for l in LABELS]
+        )
+        probs = F.softmax(label_logits, dim=0)
+
+        best_idx = probs.argmax().item()
+        label = LABELS[best_idx]
+        confidence = probs[best_idx].item()
+
+        return {"label": label, "confidence": round(confidence, 4)}
+
+
+server_instance: BrickComplexityServer | None = None
+expected_token: str = ""
+
+
+@web.middleware
+async def auth_middleware(request, handler):
+    # /health stays open for probes; /classify is the only authenticated endpoint
+    if expected_token and request.path == "/classify":
+        header = request.headers.get("Authorization", "")
+        prefix = "Bearer "
+        if not header.startswith(prefix) or not hmac.compare_digest(
+            header[len(prefix):], expected_token
+        ):
+            return web.json_response({"error": "unauthorized"}, status=401)
+    return await handler(request)
+
+
+async def handle_classify(request):
+    try:
+        data = await request.json()
+        text = data.get("text", "")
+        if not text:
+            return web.json_response({"error": "No text provided"}, status=400)
+
+        start = time.time()
+        result = server_instance.classify(text)
+        elapsed_ms = (time.time() - start) * 1000
+
+        logger.info(
+            f"Classified in {elapsed_ms:.1f}ms: "
+            f"label={result['label']}, confidence={result['confidence']}"
+        )
+
+        return web.json_response(result)
+    except Exception as e:
+        logger.error(f"Classification error: {e}", exc_info=True)
+        return web.json_response({"error": str(e)}, status=500)
+
+
+async def handle_health(request):
+    return web.json_response(
+        {
+            "status": "ok",
+            "model": server_instance.model_id if server_instance else DEFAULT_MODEL_ID,
+            "base_model": server_instance.base_model_id if server_instance else DEFAULT_BASE_MODEL_ID,
+            "device": str(server_instance.device) if server_instance else "not loaded",
+        }
+    )
+
+
+def main():
+    global server_instance, expected_token
+
+    parser = argparse.ArgumentParser(
+        description="Brick Complexity Extractor Server"
+    )
+    parser.add_argument("--port", type=int, default=8093)
+    parser.add_argument("--model-id", type=str, default=os.environ.get("BRICK_COMPLEXITY_MODEL_ID", DEFAULT_MODEL_ID))
+    parser.add_argument("--base-model-id", type=str, default=os.environ.get("BRICK_COMPLEXITY_BASE_MODEL_ID", DEFAULT_BASE_MODEL_ID))
+    parser.add_argument(
+        "--device", type=str, default="auto", choices=["auto", "cuda", "cpu"]
+    )
+    parser.add_argument(
+        "--bearer-token",
+        type=str,
+        default="",
+        help="If set (or BRICK_CLASSIFIER_TOKEN env var), /classify requires "
+             "Authorization: Bearer <token>. /health stays open.",
+    )
+    args = parser.parse_args()
+
+    expected_token = args.bearer_token or os.environ.get("BRICK_CLASSIFIER_TOKEN", "")
+    if expected_token:
+        logger.info("Bearer auth enabled on /classify")
+    else:
+        logger.warning("No bearer token set: /classify is unauthenticated")
+
+    server_instance = BrickComplexityServer(
+        model_id=args.model_id,
+        base_model_id=args.base_model_id,
+        device=args.device,
+    )
+
+    app = web.Application(middlewares=[auth_middleware])
+    app.router.add_post("/classify", handle_classify)
+    app.router.add_get("/health", handle_health)
+
+    logger.info(f"Starting server on port {args.port}")
+    web.run_app(app, host="0.0.0.0", port=args.port)
+
+
+if __name__ == "__main__":
+    main()

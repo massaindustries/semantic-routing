@@ -1,0 +1,38 @@
+# Judge models cycled sequentially on qwen-bench (4xL40S, ~184GB VRAM).
+# Backend: vLLM via Docker (venv vllm crashes std::bad_alloc; sglang has SM89 kernel issues).
+# Each judge declares which vLLM image tag to use (must support the model arch).
+# Pre-pulled images on cluster: v0.12.0 (ministral3), v0.19.1 (gemma4, qwen3.6, gpt_oss).
+
+judges:
+  - name: mistral
+    repo_id: mistralai/Mistral-Small-3.2-24B-Instruct-2506
+    image_tag: v0.19.1
+    sglang_args: ""
+    chat_template_override: null
+
+  - name: gptoss
+    repo_id: openai/gpt-oss-120b
+    image_tag: v0.19.1
+    sglang_args: ""
+    chat_template_override: null
+
+  - name: gemma
+    repo_id: google/gemma-4-31B-it
+    image_tag: v0.19.1
+    sglang_args: "--dtype bfloat16"
+    chat_template_override: null
+
+  - name: nemotron
+    repo_id: nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-FP8
+    image_tag: v0.19.1
+    sglang_args: ""
+    chat_template_override: null
+
+inference:
+  port: 30000
+  temperature: 0.0
+  max_tokens: 2048
+  request_timeout_sec: 120
+  batch_size: 64
+  parse_retry: 1
+  parse_retry_temperature: 0.0

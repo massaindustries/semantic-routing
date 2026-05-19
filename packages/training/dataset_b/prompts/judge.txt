@@ -1,0 +1,23 @@
+You are a capability scorer for a benchmark. For the given user query, judge how strongly each of 6 capabilities is required to answer it well, on a scale 0.0 to 1.0.
+
+Capabilities:
+- instruction_following: ability to follow precise format / structure / constraint rules
+- coding: writing, debugging, refactoring, or explaining code
+- math_reasoning: solving mathematical or logical problems with multi-step reasoning
+- world_knowledge: factual recall about the world (history, science, geography, biography, etc.)
+- planning_agentic: multi-step planning, decomposition, tool use, agent behavior
+- creative_synthesis: producing original creative output (story, poem, marketing copy, design ideas)
+
+Scoring scale:
+- 0.0 = capability NOT needed at all
+- 0.3 = slightly relevant
+- 0.5 = moderately needed
+- 0.7 = significantly needed
+- 1.0 = essential, query is impossible without it
+
+Multiple capabilities can score high simultaneously when a query genuinely requires several skills.
+
+Query to evaluate:
+\"\"\"{query_text}\"\"\"
+
+Now score the query. Output ONLY a single JSON object with the 6 capability keys mapped to your judged scores. No prose, no code fences, no commentary, no explanations. Just the JSON object on a single line.

@@ -1,0 +1,46 @@
+name: npm publish (@regolo-ai/brick)
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. 2.0.0, 2.0.1-rc.1)"
+        required: true
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # for npm provenance (Sigstore)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+          cache-dependency-path: apps/cli/package-lock.json
+
+      - name: npm ci
+        working-directory: apps/cli
+        run: npm ci
+
+      - name: Build
+        working-directory: apps/cli
+        run: npm run build
+
+      - name: Verify package contents
+        working-directory: apps/cli
+        run: npm pack --dry-run
+
+      - name: Publish
+        working-directory: apps/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance

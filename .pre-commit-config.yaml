@@ -1,0 +1,104 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  # Basic hooks for Go, Rust, Python And JavaScript files only
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.2.0
+    hooks:
+      - id: trailing-whitespace
+        files: \.(go|rs|py|js|ts|tsx)$
+        exclude: ^(packages/evals/baselines/|docs/paper/)
+      - id: end-of-file-fixer
+        files: \.(go|rs|py|js|ts|tsx)$
+        exclude: ^(packages/evals/baselines/|docs/paper/|website/build/)
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+        files: \.(go|rs|py|js|ts|tsx)$
+
+  # Go specific hooks
+  - repo: local
+    hooks:
+      - id: go-fmt
+        name: go fmt
+        entry: gofmt -w
+        language: system
+        files: ^apps/router/.*\.go$
+
+  - repo: local
+    hooks:
+      - id: shellcheck
+        name: shellcheck
+        entry: make shellcheck
+        language: system
+        files: \.sh$
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: golang-lint
+        name: go lint
+        entry: make go-lint
+        language: system
+        files: ^apps/router/.*\.go$
+        pass_filenames: false
+
+  # Markdown specific hooks
+  - repo: local
+    hooks:
+      - id: md-fmt
+        name: md fmt
+        entry: bash -c "make markdown-lint"
+        language: system
+        files: \.md$
+        exclude: ^(node_modules/|docs/paper/|CLAUDE\.md)
+        pass_filenames: false
+
+  # Yaml specific hooks
+  - repo: local
+    hooks:
+      - id: yaml-and-yml-fmt
+        name: yaml/yml fmt
+        entry: bash -c "make yaml-lint"
+        language: system
+        files: \.(yaml|yml)$
+        exclude: ^(node_modules/|packages/evals/baselines/)
+        pass_filenames: false
+
+  # JavaScript and TypeScript specific hooks (apps/cli)
+  - repo: local
+    hooks:
+      - id: js-ts-lint
+        name: js/ts lint
+        entry: bash -c 'cd apps/cli && (npm install --silent 2>/dev/null || true) && npm run lint'
+        language: system
+        files: ^apps/cli/.*\.(js|ts|tsx)$
+        exclude: ^apps/cli/(node_modules|dist)/
+        pass_filenames: false
+
+  # Rust specific hooks (apps/router/candle-binding)
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: bash -c 'cd apps/router/candle-binding && (rustup component add rustfmt 2>/dev/null || true) && cargo fmt'
+        language: system
+        files: ^apps/router/candle-binding/.*\.rs$
+        pass_filenames: false
+      - id: cargo-check
+        name: cargo check
+        entry: bash -c 'cd apps/router/candle-binding && cargo check --no-default-features'
+        language: system
+        files: ^apps/router/candle-binding/.*\.rs$
+        pass_filenames: false
+
+  # Python: ruff (lint + format)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+        files: ^packages/.*\.py$
+        exclude: ^(packages/evals/baselines/|packages/.*/.venv/)
+      - id: ruff-format
+        files: ^packages/.*\.py$
+        exclude: ^(packages/evals/baselines/|packages/.*/.venv/)

@@ -1,0 +1,304 @@
+# Sources del Dataset A - 6.000 query stratificate su 6 dimension
+# Schema: source_id -> { dimension, repo, config, split, target_n, license, gated, shots, fewshot_pool, filter, expected_protocol }
+
+# === instruction_following (1000) ===
+
+ifeval:
+  dimension: instruction_following
+  repo: google/IFEval
+  config: null
+  split: train  # IFEval ha solo train split
+  target_n: 700  # espanso da 500 (Multi-IF rimosso per cc-by-nc)
+  license: apache-2.0
+  gated: false
+  shots: 5
+  fewshot_pool:
+    repo: google/IFEval
+    split: train
+    note: "self-pool, esempi disjoint dall'eval via hash"
+  filter: null
+  expected_protocol: ifeval_constraint_check
+  source_label: IFEval
+
+ifbench:
+  dimension: instruction_following
+  repo: allenai/IFBench_test
+  config: null
+  split: train  # IFBench_test ha solo split 'train' (nome del repo include "_test")
+  target_n: 300
+  license: ODC-BY-1.0
+  gated: false
+  shots: 5
+  fewshot_pool:
+    repo: google/IFEval  # IFBench non ha train; IFEval style-similar
+    split: train
+  filter: null
+  expected_protocol: ifeval_constraint_check
+  source_label: IFBench
+
+# === coding (1000) ===
+
+livecodebench_v6:
+  dimension: coding
+  repo: livecodebench/code_generation_lite
+  config: null
+  split: test
+  target_n: 1000
+  license: cc-by-4.0
+  gated: false
+  shots: 5
+  custom_handler: livecodebench  # usa 10c_download_livecodebench.py (datasets script deprecated)
+  fewshot_pool:
+    repo: livecodebench/code_generation_lite
+    split: test
+    note: "filtro release_v5 o piu vecchi come pool, eval su release_v6"
+  filter:
+    field: release_version
+    value: release_v6
+    fallback_field: contest_date
+    fallback_min: "2024-08-01"
+  expected_protocol: lcb_unit_test
+  source_label: LiveCodeBench-v6
+
+# === math_reasoning (1000) ===
+
+math500:
+  dimension: math_reasoning
+  repo: HuggingFaceH4/MATH-500
+  config: null
+  split: test
+  target_n: 500
+  license: mit
+  gated: false
+  shots: 5
+  fewshot_pool:
+    repo: cais/competition_math  # fallback (lighteval/MATH non esiste)
+    split: train
+  filter: null
+  expected_protocol: math_equiv
+  source_label: MATH-500
+
+aime_2025:
+  dimension: math_reasoning
+  repo: opencompass/AIME2025
+  configs: [AIME2025-I, AIME2025-II]  # multi-config: handler dedicato in 10_download.py
+  split: test
+  target_n: 30  # 15 + 15 = 30 (AIME2025 totale, non 50). Documentato rev.4
+  license: mit
+  gated: false
+  shots: 5
+  fewshot_pool:
+    repo: cais/competition_math
+    split: train
+  filter: null
+  expected_protocol: math_equiv
+  source_label: AIME-2025
+  contamination_risk: low  # post-Feb-2025, fresh per cutoff modelli
+
+gsm8k:
+  dimension: math_reasoning
+  repo: openai/gsm8k
+  config: main
+  split: test
+  target_n: 470  # +20 (era 450) per coprire deficit AIME 2025 (50→30)
+  license: mit
+  gated: false
+  shots: 5
+  fewshot_pool:
+    repo: openai/gsm8k
+    config: main
+    split: train
+  filter: null
+  expected_protocol: gsm8k_final_answer
+  source_label: GSM8K
+  contamination_risk: high  # noto contaminato in training set
+
+# === world_knowledge (1000) ===
+
+simpleqa:
+  dimension: world_knowledge
+  repo: basicv8vc/SimpleQA
+  config: null
+  split: test
+  target_n: 700
+  license: mit
+  gated: false
+  shots: 0  # eccezione: SimpleQA per design e' 0-shot (OpenAI testa cosi)
+  fewshot_pool: null
+  filter: null
+  expected_protocol: llm_judge_factual
+  source_label: SimpleQA
+
+gpqa_diamond:
+  dimension: world_knowledge
+  repo: Idavidrein/gpqa
+  config: gpqa_diamond
+  split: train  # GPQA ha solo train
+  target_n: 198
+  license: cc-by-4.0
+  gated: true  # auto-gated
+  shots: 5
+  fewshot_pool:
+    repo: Idavidrein/gpqa
+    config: gpqa_main
+    split: train
+    note: "gpqa_main escluso diamond"
+  filter: null
+  expected_protocol: mcq_letter
+  source_label: GPQA-Diamond
+
+mmlu_pro_humanities:
+  dimension: world_knowledge
+  repo: TIGER-Lab/MMLU-Pro
+  config: null
+  split: test
+  target_n: 102
+  license: mit
+  gated: false
+  shots: 5
+  fewshot_pool:
+    repo: TIGER-Lab/MMLU-Pro
+    split: validation
+  filter:
+    field: category
+    values: [history, philosophy, law]
+  expected_protocol: mcq_letter
+  source_label: MMLU-Pro-Humanities
+
+# === creative_synthesis (target 1000, cap iniziale 696) ===
+
+eqbench_creative_v3:
+  dimension: creative_synthesis
+  repo: null  # NON HF: fetch manifest
+  manifest_url: "https://eqbench.com/results/creative-writing-v3.json"
+  target_n: 96
+  license: "see eqbench.com terms"
+  gated: false
+  shots: 5
+  fewshot_pool: null  # creative non ha gold; few-shot dimostra style
+  filter: null
+  expected_protocol: rubric_judge
+  source_label: EQ-Bench-Creative-v3
+  note: "fetch HTTP, schema TBD da prima fetch (96 prompt totali)"
+
+litbench_test:
+  dimension: creative_synthesis
+  repo: SAA-Lab/LitBench-Test
+  config: null
+  split: train
+  target_n: 0  # DISABLED rev.5: upstream contains only Reddit comment IDs (no prompt/story content)
+  license: "see HF dataset card"
+  gated: false
+  shots: 5
+  fewshot_pool:
+    repo: SAA-Lab/LitBench-Train
+    split: train
+  filter: null
+  expected_protocol: rubric_judge
+  source_label: LitBench-Test
+  note: "DISABLED: dataset upstream has only chosen_comment_id/rejected_comment_id (Reddit refs), no actual content. Replaced by extending Custom-Validated to 600."
+
+creative_custom:
+  dimension: creative_synthesis
+  repo: null  # generato da Regolo qwen3.5-122b (vedi models.yaml::synthetic_generator)
+  generated_path: data/creative_custom/generated.jsonl
+  validated_path: data/creative_custom/validated.jsonl
+  target_n: 600  # rev.5: extended from 404 to 600 to compensate LitBench drop
+  initial_cap: 600
+  generator_model: qwen3.5-122b  # via Regolo, fuori-pool
+  generator_overhead: 1.5  # genera 900 candidati per 600 validati (rev.5)
+  license: "Qwen3.5-122B output derived"
+  gated: false
+  shots: 0  # creative custom: 0-shot
+  fewshot_pool: null
+  expected_protocol: rubric_judge
+  source_label: Custom-Validated
+
+# === planning_agentic (1000, 0-shot) ===
+
+bfcl_v4:
+  dimension: planning_agentic
+  repo: gorilla-llm/Berkeley-Function-Calling-Leaderboard
+  config: null  # NO load_dataset, usa list_repo_files
+  split: null
+  target_n: 500
+  license: apache-2.0
+  gated: false
+  shots: 0
+  fewshot_pool: null
+  filter:
+    note: "stratify across categories: simple, multiple, parallel, parallel_multiple, irrelevance"
+  expected_protocol: tool_call_match
+  source_label: BFCL-v4
+
+tau_bench:
+  dimension: planning_agentic
+  repo: null  # GitHub
+  github_url: "https://github.com/sierra-research/tau-bench"
+  target_n: 0  # DEPRECATED rev.6: sostituito da bfcl_v4_multi_turn (LLM user-sim → scripted user, deterministico)
+  license: mit
+  gated: false
+  shots: 0
+  fewshot_pool: null
+  filter:
+    domains: [retail, airline]
+  expected_protocol: tool_call_trajectory
+  source_label: tau-bench
+
+bfcl_v4_multi_turn:
+  dimension: planning_agentic
+  repo: gorilla-llm/Berkeley-Function-Calling-Leaderboard
+  config: null
+  split: null
+  target_n: 165
+  license: apache-2.0
+  gated: false
+  shots: 0
+  fewshot_pool: null
+  filter:
+    note: "5 multi-turn categories: base/miss_func/miss_param/long_context (composite escluso, deprecato in v4)"
+    quotes: {base: 50, miss_func: 40, miss_param: 40, long_context: 35}
+  expected_protocol: tool_call_match
+  source_label: BFCL-v4-MT
+  materialized_path: data/raw/bfcl_v4_multi_turn.jsonl  # già materializzato da scripts/10c_clone_bfcl_multi_turn.py
+
+gaia:
+  dimension: planning_agentic
+  repo: gaia-benchmark/GAIA
+  config: "2023_all"
+  split: validation
+  target_n: 0  # disabilitato: gated + sostituito da planning_custom (vedi sotto)
+  license: "GAIA terms (no reshare crawlable)"
+  gated: true
+  shots: 0
+  fewshot_pool: null
+  filter:
+    field: Level
+    values: [1, 2]
+  expected_protocol: gaia_exact_match
+  source_label: GAIA-L1L2
+  custom_handler: gaia_disabled
+
+planning_custom:
+  dimension: planning_agentic
+  repo: null  # generato da Regolo qwen3.5-122b
+  generated_path: data/planning_custom/generated.jsonl
+  validated_path: data/planning_custom/validated.jsonl
+  target_n: 335  # sostituisce GAIA per coprire 1000 planning_agentic
+  initial_cap: 335
+  generator_model: qwen3.5-122b  # via Regolo, fuori-pool
+  generator_overhead: 1.2  # genera 400 candidati per 335 validati
+  license: "Qwen3.5-122B output derived"
+  gated: false
+  shots: 0  # planning custom: 0-shot (allineato con BFCL/tau-bench)
+  fewshot_pool: null
+  expected_protocol: rubric_judge
+  source_label: Planning-Custom
+
+# === Meta config ===
+
+_meta:
+  total_target: 5696  # iniziale (creative_custom cap 0)
+  total_target_full: 6000  # con creative_custom esteso a 404
+  seed: 42
+  push_repo: massaindustries/dataset-A-routing-eval

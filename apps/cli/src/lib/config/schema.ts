@@ -1,0 +1,209 @@
+import { z } from 'zod';
+
+export const ConditionSchema = z.object({
+  type: z.enum(['keyword', 'domain', 'complexity']),
+  name: z.string(),
+});
+
+export type Condition = z.infer<typeof ConditionSchema>;
+export type Rule = { operator: 'AND' | 'OR' | 'NOT'; conditions: (Rule | Condition)[] } | Condition;
+
+export const RuleSchema: z.ZodType<Rule> = z.lazy(() =>
+  z.union([
+    z.object({
+      operator: z.enum(['AND', 'OR', 'NOT']),
+      conditions: z.array(z.union([RuleSchema, ConditionSchema])),
+    }),
+    ConditionSchema,
+  ])
+);
+
+export const ModelRefSchema = z.object({
+  model: z.string(),
+  use_reasoning: z.boolean().optional(),
+  reasoning_effort: z.enum(['low', 'medium', 'high']).optional(),
+});
+
+export const DecisionSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  rules: RuleSchema,
+  modelRefs: z.array(ModelRefSchema).min(1),
+});
+
+export const KeywordRuleSchema = z.object({
+  name: z.string(),
+  operator: z.enum(['AND', 'OR']).default('OR'),
+  keywords: z.array(z.string()),
+  case_sensitive: z.boolean().default(false),
+});
+
+export const ProviderSchema = z.object({
+  type: z.string(),
+  base_url: z.string().url(),
+  api_key: z.string().optional(),
+});
+
+export const ProviderProfileSchema = z.object({
+  type: z.string(),
+  base_url: z.string().url(),
+});
+
+export const ProviderEndpointSchema = z.object({
+  name: z.string(),
+  provider_profile: z.string(),
+  weight: z.number().default(1),
+});
+
+export const ModelConfigSchema = z.object({
+  preferred_endpoints: z.array(z.string()),
+  param_size: z.string().optional(),
+  reasoning_family: z.string().optional(),
+});
+
+export const ReasoningFamilySchema = z.object({
+  type: z.string(),
+  parameter: z.string(),
+});
+
+export const ClassifierSchema = z.object({
+  category_model: z.object({
+    model_id: z.string(),
+    use_modernbert: z.boolean().default(true),
+    threshold: z.number().default(0.45),
+    use_cpu: z.boolean().default(true),
+    category_mapping_path: z.string().optional(),
+  }),
+});
+
+export const ComplexityServiceSchema = z.object({
+  enabled: z.boolean(),
+  address: z.string().optional(),
+  port: z.number().optional(),
+  base_url: z.string().url().optional(),
+  bearer_token: z.string().optional(),
+  bearer_token_file: z.string().optional(),
+  timeout_seconds: z.number().default(5),
+  auto_spawn: z.boolean().optional(),
+  script_path: z.string().optional(),
+  device: z.enum(['auto', 'cpu', 'cuda']).optional(),
+});
+
+export const BrickSchema = z.object({
+  enabled: z.boolean(),
+  stt_model: z.string().optional(),
+  stt_endpoint: z.string().url().optional(),
+  ocr_model: z.string().optional(),
+  ocr_endpoint: z.string().url().optional(),
+  vision_model: z.string().optional(),
+  vision_endpoint: z.string().url().optional(),
+  ocr_min_text_length: z.number().default(10),
+});
+
+export const PluginSchema = z.object({
+  enabled: z.boolean().default(false),
+  action: z.string().optional(),
+});
+
+export const SkillRouterModelSchema = z.object({
+  model: z.string(),
+  skill_vector: z.array(z.number()).min(1),
+  use_reasoning: z.boolean().optional(),
+  reasoning_effort: z.enum(['low', 'medium', 'high']).optional(),
+  cost_weight: z.number().optional(),
+  latency_weight: z.number().optional(),
+  // Inline endpoint config — enables per-model routing to OpenRouter / Regolo /
+  // Together / any OpenAI-compatible backend without provider_profiles boilerplate.
+  base_url: z.string().url().optional(),
+  api_key: z.string().optional(),
+  api_key_env: z.string().optional(),
+  api_key_file: z.string().optional(),
+  custom_params: z.record(z.any()).optional(),
+});
+
+export const SkillRouterKeywordRuleSchema = z.object({
+  name: z.string(),
+  mode: z.enum(['override', 'bias']).default('bias'),
+  importance: z.number().int().min(1).max(10).default(5),
+  model: z.string().optional(),
+  capability: z.string().optional(),
+  bias: z.record(z.number()).optional(),
+  operator: z.enum(['AND', 'OR']).default('OR'),
+  keywords: z.array(z.string()).min(1),
+  case_sensitive: z.boolean().default(false),
+});
+
+export const SkillRouterSchema = z.object({
+  enabled: z.boolean().default(true),
+  capabilities: z.array(z.string()).min(1),
+  capability_model: z.object({
+    model_id: z.string().optional(),
+    repo_id: z.string().optional(),
+    local_path: z.string().optional(),
+    labels: z.array(z.string()).optional(),
+    use_cpu: z.boolean().default(true),
+  }),
+  complexity_model: z.object({
+    model_id: z.string().default('regolo/brick-complexity-2-eco'),
+    base_model_id: z.string().default('Qwen/Qwen3.5-0.8B'),
+    base_url: z.string().url().optional(),
+    bearer_token: z.string().optional(),
+    bearer_token_file: z.string().optional(),
+    timeout_seconds: z.number().default(8),
+    auto_spawn: z.boolean().optional(),
+    script_path: z.string().optional(),
+    device: z.enum(['auto', 'cpu', 'cuda']).optional(),
+  }),
+  math: z.object({
+    prior_strength: z.number().default(8),
+    tau: z.record(z.number()).default({ easy: 0.55, medium: 0.72, hard: 0.88 }),
+    routing_preference: z.number().min(-1).max(1).default(0),
+    complexity_mu: z.number().nonnegative().default(1.07),
+    complexity_bias: z.number().default(0.15),
+    cost_penalty_beta: z.number().nonnegative().default(0.63),
+    over_penalty_lambda: z.number().default(0.35),
+    preference_power: z.number().nonnegative().default(1.56),
+    max_mu_multiplier: z.number().nonnegative().default(3.24),
+    max_bias_shift: z.number().default(1.05),
+    max_cost_relief: z.number().nonnegative().default(13.4),
+    max_over_relief: z.number().nonnegative().default(896),
+    min_mu_multiplier: z.number().nonnegative().default(0.377),
+    min_bias_shift: z.number().default(-5.87),
+    min_cost_boost: z.number().nonnegative().default(13),
+    min_over_boost: z.number().nonnegative().default(11.9),
+    tie_epsilon: z.number().default(0.03),
+    clip_min: z.number().default(0.02),
+    clip_max: z.number().default(0.98),
+  }),
+  models: z.array(SkillRouterModelSchema).min(1),
+  keyword_rules: z.array(SkillRouterKeywordRuleSchema).default([]),
+});
+
+export const ConfigSchema = z.object({
+  model: z.object({
+    name: z.string(),
+    description: z.string().optional(),
+  }),
+  providers: z.record(ProviderSchema).default({}),
+  brick: BrickSchema.optional(),
+  server_port: z.number().default(8000),
+  auto_model_name: z.string().default('brick'),
+  provider_profiles: z.record(ProviderProfileSchema).default({}),
+  provider_endpoints: z.array(ProviderEndpointSchema).default([]),
+  default_model: z.string(),
+  model_config: z.record(ModelConfigSchema).default({}),
+  reasoning_families: z.record(ReasoningFamilySchema).default({}),
+  default_reasoning_effort: z.enum(['low', 'medium', 'high']).default('medium'),
+  classifier: ClassifierSchema.optional(),
+  complexity_service: ComplexityServiceSchema.optional(),
+  skill_router: SkillRouterSchema.optional(),
+  keyword_rules: z.array(KeywordRuleSchema).default([]),
+  decisions: z.array(DecisionSchema).default([]),
+  plugins: z.record(PluginSchema).optional(),
+});
+
+export type BrickConfig = z.infer<typeof ConfigSchema>;
+export type Decision = z.infer<typeof DecisionSchema>;
+export type ModelRef = z.infer<typeof ModelRefSchema>;
+export type KeywordRuleType = z.infer<typeof KeywordRuleSchema>;
+export type SkillRouter = z.infer<typeof SkillRouterSchema>;

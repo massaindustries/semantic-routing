@@ -1,0 +1,49 @@
+# Pool modelli del Dataset A - 3 tokenizer per input_tokens calcolation
+# Schema: alias -> { hf_tokenizer, openrouter_id, native_id, kind, note }
+
+qwen35_9b:
+  alias: qwen3.5-9b
+  hf_tokenizer: Qwen/Qwen3.5-9B  # UFFICIALE - no proxy, tokens count esatto
+  openrouter_id: qwen/qwen3.5-9b  # da verificare in setup
+  native_id: Qwen/Qwen3.5-9B
+  context_length: 262144
+  context_length_extended: 1010000  # con YaRN
+  license: apache-2.0
+  proxy: false
+  expected_mismatch_pct: 0
+  note: "tokenizer ufficiale, vocab 248320, BF16, 32 layers"
+
+deepseek_v4_flash:
+  alias: deepseek-v4-flash
+  hf_tokenizer: deepseek-ai/DeepSeek-V3  # PROXY - V4 weights non public
+  openrouter_id: deepseek/deepseek-v4-flash  # da verificare
+  native_id: deepseek-v4-flash
+  context_length: 1000000  # 1M
+  max_output: 384000
+  license: deepseek-license
+  proxy: true
+  expected_mismatch_pct: 5
+  note: "284B totali, 13B active, MoE. Tokenizer V3 famiglia BPE consistente"
+
+kimi_2_6:
+  alias: kimi2.6
+  hf_tokenizer: moonshotai/Kimi-K2.6  # PROXY - path da verificare in setup
+  hf_tokenizer_fallback: moonshotai/Kimi-K2.5
+  openrouter_id: moonshotai/kimi-k2.6
+  native_id: kimi-k2-6
+  context_length: 256000
+  license: see-hf-card
+  proxy: true
+  expected_mismatch_pct: 5
+  note: "1T MoE, 32B active. K2.6 = newest version (era K2.5 per bug alias, fixato post-audit)"
+
+# === Modello fuori-pool per generazione synthetic + LLM-as-judge ===
+
+synthetic_generator:
+  alias: qwen3.5-122b-regolo
+  provider: regolo
+  base_url: https://api.regolo.ai/v1
+  model_id: qwen3.5-122b
+  api_key_file: /root/.regolo_synthetic_key
+  use_for: [creative_custom_generate, llm_as_judge]
+  note: "Fuori-pool eval (pool e' 9b/deepseek/kimi). Caveat: stessa famiglia Qwen del 9B → contamination risk medio per creative_synthesis judging del Qwen 9B"

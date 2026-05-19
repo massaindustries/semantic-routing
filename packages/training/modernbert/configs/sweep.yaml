@@ -1,0 +1,27 @@
+program: scripts/train_modernbert.py
+method: bayes
+metric:
+  name: eval/pearson_macro
+  goal: maximize
+early_terminate:
+  type: hyperband
+  min_iter: 1
+  eta: 3
+
+parameters:
+  model_size:
+    values: [base, large]
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1.0e-5
+    max: 1.0e-4
+  weight_decay:
+    distribution: log_uniform_values
+    min: 1.0e-6
+    max: 1.0e-2
+  warmup_ratio:
+    distribution: uniform
+    min: 0.03
+    max: 0.12
+  num_train_epochs:
+    values: [2, 3, 4, 5]

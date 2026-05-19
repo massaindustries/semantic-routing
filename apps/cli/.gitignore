@@ -1,0 +1,7 @@
+node_modules/
+dist/
+oclif.manifest.json
+*.tsbuildinfo
+.env
+test/.tmp/
+test/random-session-report.md

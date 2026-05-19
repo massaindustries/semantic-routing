@@ -1,0 +1,18 @@
+You are generating a single user query for an LLM benchmark.
+Edge case type: {edge_type}
+
+Edge case definitions:
+- small_talk: casual greeting or chit-chat with no real task
+- ambiguous: vague request open to multiple valid interpretations
+- off_topic: query unrelated to typical assistant skills (e.g., personal venting, philosophy)
+- very_short: ultra-brief query under 8 words
+- very_long: rambling multi-paragraph query mixing several requests
+- multilingual_mix: query that mixes 2+ natural languages within a single sentence or paragraph
+
+Constraints:
+- Generate ONE realistic query of the requested type.
+- Do NOT include solution, explanation, hints, or meta-commentary.
+- Do NOT prefix with "Query:" or wrap in quotes.
+- Output ONLY the query text.
+
+QUERY:

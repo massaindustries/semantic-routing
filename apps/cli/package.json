@@ -1,0 +1,95 @@
+{
+  "name": "@regolo-ai/brick",
+  "version": "2.0.0",
+  "description": "Brick — CLI to host the Brick multimodal LLM routing gateway locally (companion to regolo-ai/brick-SR1)",
+  "type": "module",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/regolo-ai/brick-SR1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/regolo-ai/brick-SR1.git",
+    "directory": "apps/cli"
+  },
+  "bugs": "https://github.com/regolo-ai/brick-SR1/issues",
+  "keywords": [
+    "brick",
+    "llm",
+    "router",
+    "semantic-routing",
+    "mixture-of-models",
+    "regolo",
+    "openai-compatible",
+    "multimodal"
+  ],
+  "bin": {
+    "brick": "./bin/run.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "/bin",
+    "/dist",
+    "/templates",
+    "/oclif.manifest.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "oclif": {
+    "bin": "brick",
+    "dirname": "brick",
+    "commands": "./dist/commands",
+    "topicSeparator": " ",
+    "topics": {
+      "add": {
+        "description": "Add a provider, model, decision, or plugin"
+      },
+      "remove": {
+        "description": "Remove a provider, model, decision, or plugin"
+      },
+      "config": {
+        "description": "Show or edit the current configuration"
+      },
+      "claude": {
+        "description": "Inspect Brick ↔ Claude Code wiring (status, routing stats)"
+      }
+    },
+    "hooks": {
+      "init": "./dist/hooks/init.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "node --loader ts-node/esm bin/dev.js",
+    "test": "vitest run",
+    "test:random": "node --loader ts-node/esm test/random.ts",
+    "lint": "tsc --noEmit",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.10.0",
+    "@oclif/core": "^4.0.0",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.5",
+    "execa": "^9.0.0",
+    "handlebars": "^4.7.8",
+    "ink": "^6.8.0",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
+    "js-yaml": "^4.1.0",
+    "react": "^19.2.5",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.2.14",
+    "ink-testing-library": "^4.0.0",
+    "ts-node": "^10.9.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

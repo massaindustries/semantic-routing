@@ -1,0 +1,131 @@
+# Prompt templates for Dataset A
+# Schema: prompt_id -> template (Jinja-like, {{var}})
+
+# === Few-shot CoT template (5-shot default) ===
+
+fewshot_cot:
+  description: "Generic 5-shot CoT template for non-agentic dimensions"
+  template: |
+    Solved examples:
+
+    {% for ex in few_shot_examples %}
+    --- Example {{ loop.index }} ---
+    Question: {{ ex.question }}
+    Reasoning: {{ ex.reasoning }}
+    Final answer: {{ ex.final_answer }}
+
+    {% endfor %}
+    --- Question to solve ---
+    Question: {{ query }}
+    Reasoning:
+
+# === Math-specific (focus on numeric steps) ===
+
+fewshot_cot_math:
+  description: "5-shot CoT for math_reasoning with latex/numbers focus"
+  template: |
+    Solve the following math problems showing your steps.
+
+    {% for ex in few_shot_examples %}
+    Problem: {{ ex.question }}
+    Solution: {{ ex.reasoning }}
+    Final answer: \boxed{ {{ ex.final_answer }} }
+
+    {% endfor %}
+    Problem: {{ query }}
+    Solution:
+
+# === Coding-specific ===
+
+fewshot_cot_coding:
+  description: "5-shot CoT for coding (LiveCodeBench-style)"
+  template: |
+    Solve the following programming problems by providing Python code that passes the tests.
+
+    {% for ex in few_shot_examples %}
+    Problem:
+    {{ ex.question }}
+
+    Solution:
+    ```python
+    {{ ex.final_answer }}
+    ```
+
+    {% endfor %}
+    Problem:
+    {{ query }}
+
+    Solution:
+
+# === MCQ (multiple choice) ===
+
+fewshot_cot_mcq:
+  description: "5-shot CoT for multiple choice (MMLU-Pro, GPQA)"
+  template: |
+    Answer the following multiple choice questions with the correct letter.
+
+    {% for ex in few_shot_examples %}
+    Question: {{ ex.question }}
+    Options:
+    {{ ex.options_formatted }}
+    Reasoning: {{ ex.reasoning }}
+    Answer: ({{ ex.final_answer }})
+
+    {% endfor %}
+    Question: {{ query }}
+    Options:
+    {{ options_formatted }}
+    Reasoning:
+
+# === SimpleQA: 0-shot (by design) ===
+
+simpleqa_zero_shot:
+  description: "0-shot for SimpleQA factual"
+  template: |
+    Answer the following question with a precise short fact. Provide the specific entity name, year, number, or short factual phrase only — no full sentences, no explanation. If you don't know, write 'I don't know'.
+
+    Question: {{ query }}
+    Answer:
+
+# === Creative writing 5-shot ===
+
+fewshot_creative:
+  description: "5-shot for creative_synthesis (style demo)"
+  template: |
+    High-quality creative writing examples:
+
+    {% for ex in few_shot_examples %}
+    Prompt: {{ ex.question }}
+    Story:
+    {{ ex.final_answer }}
+
+    ---
+
+    {% endfor %}
+    Prompt: {{ query }}
+    Story:
+
+# === Agentic 0-shot ===
+
+agentic_zero_shot:
+  description: "0-shot for planning_agentic (BFCL/tau-bench/GAIA)"
+  template: |
+    {{ query }}
+
+# === Instruction following 5-shot (no CoT, focus on constraints) ===
+
+fewshot_ifeval:
+  description: "5-shot IF-style (no CoT, demonstrates constraint compliance)"
+  template: |
+    Follow the instructions exactly as shown in the examples.
+
+    {% for ex in few_shot_examples %}
+    Instruction: {{ ex.question }}
+    Response:
+    {{ ex.final_answer }}
+
+    ---
+
+    {% endfor %}
+    Instruction: {{ query }}
+    Response:

@@ -1,0 +1,20 @@
+You are generating a single user query for an LLM benchmark.
+Target capabilities (ALL required): {dimensions}
+Difficulty level: {difficulty}
+
+Capability descriptions:
+- instruction_following: ability to follow precise format / structure / constraint rules
+- coding: writing, debugging, refactoring, or explaining code in any language
+- math_reasoning: solving mathematical or logical problems with multi-step reasoning
+- world_knowledge: factual recall about the world (history, science, geography, biography, etc.)
+- planning_agentic: multi-step planning, decomposition, tool use, agent behavior
+- creative_synthesis: producing original creative output (story, poem, marketing copy, design ideas)
+
+Constraints:
+- Generate ONE realistic query that genuinely requires ALL listed capabilities.
+- Avoid contrived combinations; the query must read like something a real user would ask.
+- Do NOT include solution, explanation, hints, or meta-commentary.
+- Do NOT prefix with "Query:" or wrap in quotes.
+- Output ONLY the query text, in {language}.
+
+QUERY:

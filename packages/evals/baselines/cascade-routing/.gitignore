@@ -1,0 +1,12 @@
+.env
+
+*.egg-info
+*.egg
+
+data/
+
+__pycache__/
+
+nohup.out
+
+DeepSeek-Prover-V1.5

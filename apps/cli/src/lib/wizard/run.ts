@@ -1,0 +1,291 @@
+import * as p from '@clack/prompts';
+import { writeFile, mkdir, readFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
+import { paths } from '../config/paths.js';
+import { saveConfig } from '../config/save.js';
+import { ConfigSchema, type BrickConfig } from '../config/schema.js';
+import { catalog, reasoningFamiliesDefault } from '../catalog/index.js';
+import { writeCompose } from '../docker/compose.js';
+
+export async function runWizard(profile: string): Promise<BrickConfig> {
+  const pp = paths(profile);
+  p.intro(`brick — guided init (profile: ${profile})`);
+
+  const enabledProvidersRaw = await p.multiselect({
+    message: 'Which providers do you want to enable?',
+    options: [
+      { value: 'regolo', label: 'Regolo AI (default)', hint: 'api.regolo.ai' },
+      { value: 'openai', label: 'OpenAI', hint: 'api.openai.com' },
+      { value: 'local', label: 'Local OpenAI-compatible', hint: 'custom endpoint' },
+    ],
+    initialValues: ['regolo'],
+    required: true,
+  });
+  if (p.isCancel(enabledProvidersRaw)) { p.cancel('aborted'); process.exit(0); }
+  const enabledProviders = enabledProvidersRaw as string[];
+
+  const apiKeys: Record<string, string> = {};
+  const providers: Record<string, any> = {};
+  const providerProfiles: Record<string, any> = {};
+  const providerEndpoints: any[] = [];
+
+  for (const pid of enabledProviders) {
+    const cat = catalog[pid];
+    let baseUrl = cat.base_url;
+    if (pid === 'local') {
+      const u = await p.text({ message: 'Local endpoint base_url:', placeholder: cat.base_url, defaultValue: cat.base_url });
+      if (p.isCancel(u)) { p.cancel('aborted'); process.exit(0); }
+      baseUrl = String(u || cat.base_url);
+    }
+    const existing = await readEnvKey(cat.env_key, pp.env);
+    let key: string;
+    if (existing) {
+      key = existing;
+    } else {
+      const k = await p.password({ message: `${cat.label} API key (will be saved to ~/.brick/.env, not in YAML):` });
+      if (p.isCancel(k)) { p.cancel('aborted'); process.exit(0); }
+      key = String(k);
+    }
+    apiKeys[cat.env_key] = key;
+    providers[pid] = { type: 'openai_compatible', base_url: baseUrl };
+    providerProfiles[pid] = { type: 'openai_compatible', base_url: baseUrl };
+    providerEndpoints.push({ name: pid, provider_profile: pid, weight: 1 });
+  }
+
+  // model selection per enabled provider
+  const modelConfig: Record<string, any> = {};
+  let selectedModelIds: string[] = [];
+  for (const pid of enabledProviders) {
+    const cat = catalog[pid];
+    if (cat.models.length === 0) {
+      const ids = await p.text({ message: `Comma-separated model IDs for ${cat.label}:`, placeholder: 'mistral,llama3' });
+      if (p.isCancel(ids)) { p.cancel('aborted'); process.exit(0); }
+      const list = String(ids).split(',').map((s) => s.trim()).filter(Boolean);
+      for (const id of list) modelConfig[id] = { preferred_endpoints: [pid], param_size: 'unknown' };
+      selectedModelIds.push(...list);
+    } else {
+      const sel = await p.multiselect({
+        message: `Select models for ${cat.label}:`,
+        options: cat.models.map((m) => ({ value: m.id, label: `${m.label} (${m.param_size})`, hint: m.reasoning_family })),
+        required: true,
+      });
+      if (p.isCancel(sel)) { p.cancel('aborted'); process.exit(0); }
+      for (const id of sel as string[]) {
+        const m = cat.models.find((x) => x.id === id)!;
+        modelConfig[id] = {
+          preferred_endpoints: [pid],
+          param_size: m.param_size,
+          ...(m.reasoning_family ? { reasoning_family: m.reasoning_family } : {}),
+        };
+        selectedModelIds.push(id);
+      }
+    }
+  }
+
+  const defaultModelChoice = await p.select({
+    message: 'Default model (used when no decision matches):',
+    options: selectedModelIds.map((id) => ({ value: id, label: id })),
+  });
+  if (p.isCancel(defaultModelChoice)) { p.cancel('aborted'); process.exit(0); }
+  const defaultModel = String(defaultModelChoice);
+
+  // complexity service
+  const useComplexity = await p.confirm({ message: 'Enable Brick2 complexity service?', initialValue: true });
+  if (p.isCancel(useComplexity)) { p.cancel('aborted'); process.exit(0); }
+  let complexityService: any | undefined;
+  if (useComplexity) {
+    const baseUrl = await p.text({ message: 'complexity_service base_url:', placeholder: 'http://127.0.0.1:8094', defaultValue: 'http://127.0.0.1:8094' });
+    if (p.isCancel(baseUrl)) { p.cancel('aborted'); process.exit(0); }
+    complexityService = { enabled: true, base_url: String(baseUrl || 'http://127.0.0.1:8094'), timeout_seconds: 8, auto_spawn: false };
+  }
+
+  // multimodal brick
+  const useBrick = await p.confirm({ message: 'Enable Brick multimodal (STT/OCR/Vision)?', initialValue: true });
+  if (p.isCancel(useBrick)) { p.cancel('aborted'); process.exit(0); }
+  let brick: any | undefined;
+  if (useBrick) {
+    const primaryProvider = enabledProviders.includes('regolo') ? 'regolo' : enabledProviders[0];
+    const mm = catalog[primaryProvider].multimodal;
+    brick = {
+      enabled: true,
+      stt_model: mm.stt?.model ?? 'faster-whisper-large-v3',
+      stt_endpoint: mm.stt?.endpoint ?? 'https://api.regolo.ai/v1/audio/transcriptions',
+      ocr_model: mm.ocr?.model ?? 'deepseek-ocr-2',
+      ocr_endpoint: mm.ocr?.endpoint ?? 'https://api.regolo.ai/v1/chat/completions',
+      vision_model: mm.vision?.model ?? 'qwen3.5-122b',
+      vision_endpoint: mm.vision?.endpoint ?? 'https://api.regolo.ai/v1/chat/completions',
+      ocr_min_text_length: 10,
+    };
+  }
+
+  const skillRouter = buildSkillRouter(selectedModelIds, complexityService?.base_url);
+
+  // assemble
+  const reasoningFamilies: Record<string, any> = {};
+  for (const id of selectedModelIds) {
+    const fam = modelConfig[id]?.reasoning_family;
+    if (fam && (reasoningFamiliesDefault as any)[fam]) {
+      reasoningFamilies[fam] = (reasoningFamiliesDefault as any)[fam];
+    }
+  }
+
+  const cfg: BrickConfig = ConfigSchema.parse({
+    model: { name: 'brick', description: 'Virtual multimodal routing model' },
+    providers,
+    brick,
+    server_port: 8000,
+    auto_model_name: 'brick',
+    provider_profiles: providerProfiles,
+    provider_endpoints: providerEndpoints,
+    default_model: defaultModel,
+    model_config: modelConfig,
+    reasoning_families: reasoningFamilies,
+    default_reasoning_effort: 'medium',
+    complexity_service: complexityService,
+    skill_router: skillRouter,
+    keyword_rules: [],
+    decisions: [],
+  });
+
+  // summary
+  p.note(
+    [
+      `providers: ${Object.keys(providers).join(', ')}`,
+      `models: ${selectedModelIds.join(', ')}`,
+      `default_model: ${defaultModel}`,
+      `skill_router models: ${skillRouter.models.length}`,
+      `complexity_service: ${useComplexity ? 'on' : 'off'}`,
+      `multimodal brick: ${useBrick ? 'on' : 'off'}`,
+    ].join('\n'),
+    'summary'
+  );
+
+  const ok = await p.confirm({ message: `Write config to ${pp.config}?`, initialValue: true });
+  if (p.isCancel(ok) || !ok) { p.cancel('aborted'); process.exit(0); }
+
+  await saveConfig(cfg, profile);
+  await writeEnvFile(apiKeys, pp.env);
+  await writeCompose({ profile, port: cfg.server_port });
+  p.outro(`done. config=${pp.config} compose=${pp.compose} env=${pp.env}`);
+  return cfg;
+}
+
+const CAPABILITIES = [
+  'coding',
+  'creative_synthesis',
+  'instruction_following',
+  'math_reasoning',
+  'planning_agentic',
+  'world_knowledge',
+];
+
+const KNOWN_SKILL_VECTORS: Record<string, number[]> = {
+  'qwen3.5-9b': [0.714788, 0.511538, 0.810109, 0.912146, 0.577072, 0.179876],
+  'deepseek-v4-flash': [0.820939, 0.657845, 0.863112, 0.934963, 0.62055, 0.488518],
+  'kimi2.6': [0.904272, 0.751595, 0.87018, 0.943892, 0.641863, 0.344074],
+};
+
+function buildSkillRouter(modelIds: string[], complexityBaseUrl?: string): any {
+  const models = modelIds.map((id, idx) => ({
+    model: id,
+    skill_vector: KNOWN_SKILL_VECTORS[id] ?? heuristicSkillVector(idx, modelIds.length),
+    use_reasoning: id === 'kimi2.6' ? true : false,
+    ...(id === 'kimi2.6' ? { reasoning_effort: 'medium' } : {}),
+    cost_weight: Number(((idx + 1) / Math.max(1, modelIds.length)).toFixed(2)),
+  }));
+
+  return {
+    enabled: true,
+    capabilities: CAPABILITIES,
+    capability_model: {
+      model_id: 'models/modernbert-capability-classifier',
+      repo_id: 'massaindustries/modernbert-capability-classifier',
+      labels: CAPABILITIES,
+      use_cpu: true,
+    },
+    complexity_model: {
+      model_id: 'regolo/brick-complexity-2-eco',
+      base_model_id: 'Qwen/Qwen3.5-0.8B',
+      ...(complexityBaseUrl ? { base_url: complexityBaseUrl } : {}),
+      timeout_seconds: 8,
+      auto_spawn: false,
+    },
+    math: {
+      prior_strength: 8,
+      tau: { easy: 0.55, medium: 0.72, hard: 0.88 },
+      complexity_mu: 1.07,
+      complexity_bias: 0.15,
+      cost_penalty_beta: 0.63,
+      over_penalty_lambda: 0.35,
+      preference_power: 1.56,
+      max_mu_multiplier: 3.24,
+      max_bias_shift: 1.05,
+      max_cost_relief: 13.4,
+      max_over_relief: 896,
+      min_mu_multiplier: 0.377,
+      min_bias_shift: -5.87,
+      min_cost_boost: 13,
+      min_over_boost: 11.9,
+      tie_epsilon: 0.03,
+      clip_min: 0.02,
+      clip_max: 0.98,
+    },
+    models,
+    keyword_rules: [
+      {
+        name: 'force_coder',
+        mode: 'override',
+        importance: 10,
+        model: models.at(-1)?.model ?? modelIds[0],
+        operator: 'OR',
+        keywords: ['debug', 'refactor', 'compile', 'runtime', 'write a function', 'function that', 'class called'],
+        case_sensitive: false,
+      },
+      {
+        name: 'coding_bias',
+        mode: 'bias',
+        importance: 8,
+        capability: 'coding',
+        operator: 'OR',
+        keywords: ['python', 'javascript', 'typescript', 'golang', 'rust', 'java', 'sql', 'bash', 'async', 'thread'],
+        case_sensitive: false,
+      },
+    ],
+  };
+}
+
+function heuristicSkillVector(index: number, total: number): number[] {
+  const base = 0.62 + 0.18 * (index / Math.max(1, total - 1));
+  return [base, base, Math.min(0.9, base + 0.05), Math.min(0.92, base + 0.08), base, Math.max(0.35, base - 0.1)];
+}
+
+async function readEnvKey(envKey: string, envPath?: string): Promise<string | null> {
+  const target = envPath;
+  try {
+    if (target) {
+      const txt = await readFile(target, 'utf8');
+      const m = txt.match(new RegExp(`^${envKey}=(.+)$`, 'm'));
+      if (m) return m[1].trim();
+    }
+  } catch {}
+  return process.env[envKey] ?? null;
+}
+
+async function writeEnvFile(keys: Record<string, string>, envPath: string): Promise<void> {
+  await mkdir(dirname(envPath), { recursive: true, mode: 0o700 });
+  let existing = '';
+  try {
+    existing = await readFile(envPath, 'utf8');
+  } catch {}
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  for (const [k, v] of Object.entries(keys)) {
+    lines.push(`${k}=${v}`);
+    seen.add(k);
+  }
+  for (const line of existing.split('\n')) {
+    const m = line.match(/^([A-Z_][A-Z0-9_]*)=/);
+    if (m && !seen.has(m[1])) lines.push(line);
+  }
+  await writeFile(envPath, lines.filter(Boolean).join('\n') + '\n', { mode: 0o600 });
+}

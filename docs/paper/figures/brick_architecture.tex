@@ -1,0 +1,170 @@
+% Brick architecture diagram (TikZ). Included via \input{} into paper.tex.
+% Single-column tall vertical layout, Vaswani-style.
+% Cartesian arrows only. Scorer decomposed into 5 sub-blocks + Cost Vector lateral.
+\begin{tikzpicture}[
+    font=\sffamily,
+    node distance=5mm and 5mm,
+    box/.style    ={rectangle, rounded corners=2pt, draw=black!55,
+                    line width=0.45pt, align=center, inner sep=1.6pt,
+                    font=\sffamily\scriptsize, minimum height=7mm,
+                    text width=18mm},
+    norm/.style   ={box, fill=black!8},
+    capbox/.style ={box, fill=blue!15,   text width=18mm, minimum height=12mm},
+    cpx/.style    ={box, fill=yellow!28, text width=18mm, minimum height=12mm},
+    sub/.style    ={box, fill=orange!30, text width=24mm, minimum height=8mm,
+                    inner sep=1.4pt},
+    skill/.style  ={box, fill=green!22,  text width=15mm, minimum height=8mm,
+                    inner sep=1.4pt},
+    cost/.style   ={box, fill=red!12,    text width=15mm, minimum height=8mm,
+                    inner sep=1.4pt},
+    knob/.style   ={box, fill=cyan!18,   text width=18mm, minimum height=8mm,
+                    inner sep=1.4pt},
+    sel/.style    ={box, fill=violet!22, text width=20mm, minimum height=7mm},
+    plain/.style  ={font=\sffamily\footnotesize},
+    arr/.style    ={-{Stealth[length=2mm,width=1.6mm]}, line width=0.5pt},
+    lab/.style    ={font=\sffamily\tiny, inner sep=0.8pt, fill=white,
+                    fill opacity=0.9, text opacity=1}
+]
+
+% =========================================================================
+% Bottom: input + preprocessing
+% =========================================================================
+\node[plain] (query) {Query $x$};
+\node[norm, above=of query] (norm) {Text\\Normalization};
+\node[norm, above=of norm]  (kw)   {Keyword Prior\\Injection};
+
+% =========================================================================
+% Two parallel towers
+% =========================================================================
+\node[capbox, above=10mm of kw, xshift=-15mm]
+      (capest) {Capability\\Distribution\\Estimator\\\tiny (ModernBERT)};
+\node[cpx,    above=10mm of kw, xshift=+15mm]
+      (cpxest) {Complexity\\Estimator\\\tiny (brick-complexity-\\classifier)};
+
+% =========================================================================
+% Scorer: 5 sub-blocks
+% Level 1: Capacity (above Capability), Difficulty Lift (above Complexity)
+% Level 2: Requirement (centered)
+% Level 3: Residuals (centered)
+% Level 4: Distance & Cost (centered)
+% =========================================================================
+\node[sub, above=10mm of capest] (capac)
+      {Capacity\\\tiny $v_{m,c}{=}p_c\,\mathrm{logit}(s_{m,c})$};
+\node[sub, above=10mm of cpxest] (dlift)
+      {Difficulty Lift\\\tiny $z_q{=}b{+}\mu\,\mathrm{logit}(\tau_q)$};
+\path let \p1=(capac.north), \p2=(dlift.north) in
+      node[sub] (reqc) at ({(\x1+\x2)/2}, {\y1+10mm})
+      {Requirement\\\tiny $r_{q,c}{=}p_c\,z_q$};
+
+\node[sub, above=8mm of reqc] (resid)
+      {Residuals\\\tiny $u{=}\max(0,r{-}v)$\\\tiny $o{=}\max(0,v{-}r)$};
+\node[sub, above=8mm of resid] (dcost)
+      {Distance \& Cost\\\tiny $D_m{=}\sqrt{\sum(u^2{+}\lambda o^2)}$\\\tiny $J_m{=}D_m{+}\beta\,a_m$};
+
+% =========================================================================
+% Side inputs (Skill Matrix S left, Cost Vector a right)
+% =========================================================================
+\node[skill, left=3mm of capac] (skill)
+      {Skill\\Matrix $S$\\\tiny offline-calibrated};
+\node[cost,  right=10mm of dcost, yshift=10mm] (costv)
+      {Cost\\Vector $a_m$\\\tiny locked pricing};
+
+% =========================================================================
+% External preference knob + power-law mapping
+% =========================================================================
+\node[knob, right=14mm of dlift] (knobmap)
+      {Knob mapping\\\tiny power law};
+\node[knob, below=8mm of knobmap] (knob)
+      {Pref. knob\\$r{\in}[{-}1,1]$\\\tiny external};
+
+% =========================================================================
+% Selector + output
+% =========================================================================
+\node[sel, above=7mm of dcost] (sel) {Argmin Selector};
+\node[plain, above=of sel]    (mstar) {$m^{\star}$};
+
+% =========================================================================
+% Fork coordinates
+% =========================================================================
+\coordinate (fork)   at ($(kw.north)+(0,5mm)$);
+\coordinate (pxfork) at ($(capest.north)+(0,5mm)$);
+
+% =========================================================================
+% Background fit-boxes (towers + scorer)
+% =========================================================================
+\begin{pgfonlayer}{background}
+  \node[draw=gray!55, dashed, rounded corners=3pt,
+        fit=(capest)(cpxest), inner sep=2mm, fill=gray!6] (towers) {};
+  \node[draw=gray!55, dashed, rounded corners=3pt,
+        fit=(dlift)(capac)(reqc)(resid)(dcost), inner sep=2mm,
+        fill=orange!4] (scorer) {};
+\end{pgfonlayer}
+
+% =========================================================================
+% Arrows (cartesian only)
+% =========================================================================
+% bottom chain
+\draw[arr] (query) -- (norm);
+\draw[arr] (norm)  -- (kw);
+\draw[arr] (kw.north) -- (fork) -| (capest.south);
+\draw[arr] (kw.north) -- (fork) -| (cpxest.south);
+
+% Capability -> Capacity (vertical), with p(x) label on shared segment below fork
+\draw[arr] (capest.north) -- (capac.south)
+          node[lab, pos=0.22, right=1pt] {$p(x)$};
+
+% Complexity -> Difficulty Lift (vertical, tau_q)
+\draw[arr] (cpxest.north) -- (dlift.south)
+          node[lab, pos=0.5, left=1pt] {$\tau_q$};
+
+% p(x) fork: route through center gap (x=0) up to Requirement.south, avoiding Capacity
+\draw[arr] (pxfork) -| (reqc.south);
+
+% Difficulty Lift -> Requirement (double elbow, enters reqc closer to its center-bottom)
+\draw[arr] (dlift.north) -- ++(0,3mm)
+          node[lab, above=1pt] {$z_q$}
+          -| ([xshift=-3mm]reqc.south east);
+
+% Capacity -> Residuals (double elbow, enters resid closer to its center-bottom)
+\draw[arr] (capac.north) -- ++(0,15mm)
+          node[lab, pos=0.5, right=1pt] {$v_{m,c}$}
+          -| ([xshift=3mm]resid.south west);
+
+% Requirement -> Residuals (vertical; r_qc)
+\draw[arr] (reqc.north) -- (resid.south)
+          node[lab, pos=0.5, right=1pt] {$r_{q,c}$};
+
+% Residuals -> Distance & Cost (vertical; u, o)
+\draw[arr] (resid.north) -- (dcost.south)
+          node[lab, pos=0.5, right=1pt] {$u,\,o$};
+
+% Skill Matrix S -> Capacity (horizontal)
+\draw[arr] (skill.east) -- (capac.west)
+          node[lab, midway, above] {$S$};
+
+% Cost Vector a -> Distance & Cost (double elbow: down from costv south, then west into upper-east of dcost)
+\draw[arr] (costv.south) |- ([yshift=2.5mm]dcost.east)
+          node[lab, pos=0.7, above] {$a_m$};
+
+% Distance & Cost -> Argmin (vertical; J_m)
+\draw[arr] (dcost) -- (sel)
+          node[lab, midway, right] {$J_m$};
+
+% Argmin -> m*
+\draw[arr] (sel) -- (mstar);
+
+% Knob -> Mapping (vertical, label r)
+\draw[arr] (knob.north) -- (knobmap.south)
+          node[lab, midway, right] {$r$};
+
+% Mapping -> Difficulty Lift (mu, b)  [short horizontal]
+\draw[arr] (knobmap.west) -- (dlift.east)
+          node[lab, midway, above] {$\mu, b$};
+
+% Mapping -> Distance & Cost (beta, lambda)
+% Route: right out of knobmap.east, then up-and-left double elbow into dcost.east
+% (dcost.east is now free: costv moved up)
+\draw[arr] (knobmap.east) -- ++(4mm,0) |- ([yshift=-2.5mm]dcost.east)
+          node[lab, pos=0.95, above] {$\beta, \lambda$};
+
+\end{tikzpicture}

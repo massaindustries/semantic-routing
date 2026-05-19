@@ -1,0 +1,7 @@
+--index-url https://download.pytorch.org/whl/cpu
+torch>=2.1.0
+--extra-index-url https://pypi.org/simple/
+transformers>=4.45.0
+peft>=0.13.0
+aiohttp>=3.9.0
+accelerate>=0.34.0

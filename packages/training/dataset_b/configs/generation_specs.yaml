@@ -1,0 +1,74 @@
+# 50k query composition for Dataset B training set.
+
+generator:
+  repo_id: Qwen/Qwen3.6-35B-A3B
+  port: 30000
+  image_tag: v0.19.1
+  sglang_args: ""
+  temperature: 1.0
+  top_p: 0.95
+  max_tokens: 512
+  batch_size: 64
+
+dimensions:
+  - instruction_following
+  - coding
+  - math_reasoning
+  - world_knowledge
+  - planning_agentic
+  - creative_synthesis
+
+# 24k single-skill (4k per dimension)
+single_skill:
+  count_per_dimension: 4000
+  difficulty_distribution:   # weights summing to 1.0
+    low: 0.3
+    medium: 0.5
+    high: 0.2
+  length_distribution:
+    short: 0.4
+    medium: 0.4
+    long: 0.2
+
+# 20k multi-skill across pairs and triples (sample uniformly from listed combos)
+multi_skill:
+  total_count: 20000
+  pairs:
+    - [coding, math_reasoning]
+    - [coding, instruction_following]
+    - [coding, planning_agentic]
+    - [math_reasoning, world_knowledge]
+    - [math_reasoning, instruction_following]
+    - [world_knowledge, creative_synthesis]
+    - [world_knowledge, planning_agentic]
+    - [creative_synthesis, instruction_following]
+    - [planning_agentic, instruction_following]
+    - [creative_synthesis, planning_agentic]
+  triples:
+    - [coding, math_reasoning, planning_agentic]
+    - [coding, instruction_following, planning_agentic]
+    - [world_knowledge, math_reasoning, instruction_following]
+    - [creative_synthesis, world_knowledge, instruction_following]
+  pair_share: 0.7
+  triple_share: 0.3
+  difficulty_distribution:
+    low: 0.2
+    medium: 0.5
+    high: 0.3
+
+# 6k edge cases
+edge_cases:
+  total_count: 6000
+  types:
+    small_talk: 1000
+    ambiguous: 1000
+    off_topic: 1000
+    very_short: 1000
+    very_long: 1000
+    multilingual_mix: 1000
+
+# Output
+output:
+  path: data/raw/queries_generated.jsonl
+  query_id_prefix: "b_"
+  query_id_pad: 6

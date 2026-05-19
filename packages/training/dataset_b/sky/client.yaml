@@ -1,0 +1,28 @@
+# Lightweight task to run a generation/judge client on the cluster against the local SGLang.
+# Use envs CMD to override (e.g., python scripts/01_generate_queries.py --max 1000).
+
+name: dataset-b-client
+
+resources:
+  infra: seeweb
+  accelerators: L40S:4   # share cluster with serve.yaml
+
+workdir: .
+
+envs:
+  CMD: "python scripts/01_generate_queries.py --max 100"
+
+setup: |
+  set -e
+  if [ ! -d "$HOME/sgl_env" ]; then
+    sudo apt-get update -qq && sudo apt-get install -y -qq python3-pip python3-venv
+    python3 -m venv $HOME/sgl_env
+    source $HOME/sgl_env/bin/activate
+    pip install pyyaml requests datasets huggingface_hub
+  fi
+
+run: |
+  source $HOME/sgl_env/bin/activate
+  cd ~/sky_workdir
+  echo "[run] $CMD"
+  $CMD

@@ -1,0 +1,44 @@
+program: external_comparison/sweep_brick_v2_singletrial.py
+method: bayes
+metric:
+  name: holdout_accuracy
+  goal: maximize
+parameters:
+  calibrate_skills:
+    value: true
+  dev_fraction:
+    value: 0.70
+  seed:
+    value: brick-v2-bayes
+  tau_mode:
+    value: raw
+  routing_preference:
+    distribution: uniform
+    min: -1.0
+    max: 1.0
+  complexity_mu:
+    distribution: log_uniform_values
+    min: 0.10
+    max: 3.0
+  complexity_bias:
+    distribution: uniform
+    min: -1.5
+    max: 1.5
+  cost_penalty_beta:
+    distribution: log_uniform_values
+    min: 0.001
+    max: 2.0
+  over_penalty_lambda:
+    distribution: log_uniform_values
+    min: 0.001
+    max: 5.0
+  tau_base:
+    distribution: uniform
+    min: 0.30
+    max: 0.97
+early_terminate:
+  type: hyperband
+  min_iter: 1
+command:
+  - python3
+  - ${program}
