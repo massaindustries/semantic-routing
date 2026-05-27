@@ -1,4 +1,4 @@
-# Brick → Claude Code stack (mymodel + GPU classifier).
+# Brick → Claude Code stack (router + GPU classifier).
 #
 # Linux: `docker compose -f docker-compose.brick-cc.yml up -d`
 #   Requires nvidia-container-toolkit installed on the host.
@@ -13,11 +13,11 @@
 # Optional:
 #   HF_TOKEN                speeds up the first classifier startup if set
 #   BRICK_CC_TAG            image tag, default `latest`
-#   BRICK_CC_HOST_PORT      mymodel port on host, default 18000
+#   BRICK_CC_HOST_PORT      Brick router port on host, default 18000
 
 x-images:
   classifier-image: &classifier-image ghcr.io/massaindustries/brick-cc-classifier:${BRICK_CC_TAG:-latest}
-  mymodel-image:    &mymodel-image    ghcr.io/massaindustries/brick-cc-mymodel:${BRICK_CC_TAG:-latest}
+  router-image:     &router-image     ghcr.io/massaindustries/brick-cc-router:${BRICK_CC_TAG:-latest}
 
 services:
   classifier:
@@ -44,9 +44,9 @@ services:
     restart: unless-stopped
     networks: [brick-cc]
 
-  mymodel:
-    image: *mymodel-image
-    container_name: brick-cc-mymodel
+  router:
+    image: *router-image
+    container_name: brick-cc-router
     depends_on:
       classifier:
         condition: service_healthy

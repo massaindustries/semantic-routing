@@ -1,13 +1,13 @@
-# MyModel Docker Compose: Single HTTP proxy service (no Envoy)
+# Brick Docker Compose, single HTTP proxy service (no Envoy)
 # Usage:
 #   docker compose -f deploy/docker-compose/docker-compose.yml up
 #
 # Build first:
-#   make docker-build-mymodel
+#   make docker-build-brick
 
 services:
-  mymodel:
-    image: mymodel:latest
+  brick:
+    image: brick:latest
     ports:
       - "8000:8000"   # HTTP proxy (OpenAI-compatible API)
     volumes:

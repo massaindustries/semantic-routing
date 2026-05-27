@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 
-// Brand colors (ported from mymodel-cli-ts MVP src/lib/ui/theme.ts)
+// Brand colors (ported from the early CLI MVP theme.ts)
 export const ACCENT = chalk.hex('#00d4aa');
 export const ACCENT_DIM = chalk.hex('#009977');
 export const ACCENT_BOLD = chalk.hex('#00d4aa').bold;

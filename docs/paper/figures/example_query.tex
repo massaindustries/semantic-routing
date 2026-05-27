@@ -2,13 +2,13 @@
 
 \textbf{Query.} \texttt{q\_03563} (dim: \texttt{planning\_agentic}): ``Can you help me with a few tasks? First, I am playing a game where I need to calculate the evolutionary fitness of a creature. ...''
 
-\textbf{Step 0 -- preference knob.} The caller sets $r{=}0$ (\texttt{balanced} profile), so $p^{+}{=}p^{-}{=}0$ and the four routing scalars collapse to their locked production base values (Table~\ref{tab:brick-knob-defaults}):
+\vspace{4pt}\noindent\textbf{Step 0. Preference knob.} The caller sets $r{=}0$ (\texttt{balanced} profile), so $p^{+}{=}p^{-}{=}0$ and the four routing scalars collapse to their locked production base values (Table~\ref{tab:brick-knob-defaults}):
 \[
-(\mu, b, \beta, \lambda) \;=\; (\mu_0, b_0, \beta_0, \lambda_0) \;=\; (1.07,\,0.15,\,0.63,\,0.35).
+(\mu, b, \beta, \lambda) = (\mu_0, b_0, \beta_0, \lambda_0) = (1.07, 0.15, 0.63, 0.35).
 \]
 
-\medskip\noindent\textbf{Step 1 -- capability distribution} $p(x)$ from ModernBERT (six entries, sum to one):
-\begin{center}\small
+\vspace{4pt}\noindent\textbf{Step 1. Capability distribution} $p(x)$ from ModernBERT (six entries, sum to one):
+\vspace{-2pt}\begin{center}\small
 \begin{tabular}{l r r r r r r }
 \toprule
 $c$ & \texttt{cod} & \texttt{crea} & \texttt{ifo} & \texttt{math} & \texttt{plan} & \texttt{wld} \\
@@ -17,13 +17,13 @@ $p_c$ & 0.09 & 0.53 & 0.09 & 0.09 & 0.09 & 0.09 \\
 \end{tabular}\end{center}
 \vspace{-4pt}{\footnotesize\noindent(Values rounded to two decimals for display; full-precision probabilities sum to one.)}
 
-\medskip\noindent\textbf{Step 2 -- complexity and difficulty lift.} The complexity head labels the query \texttt{hard} with confidence $0.51$, blending into $\tau_q{=}0.802$. The effective difficulty logit is
+\vspace{4pt}\noindent\textbf{Step 2. Complexity and difficulty lift.} The complexity head labels the query \texttt{hard} with confidence $0.51$, blending into $\tau_q{=}0.802$. The effective difficulty logit is
 \[
 z_q \;=\; b + \mu\,\mathrm{logit}(\tau_q) \;=\; 0.15 + 1.07\cdot1.401 \;=\; 1.649.
 \]
 
-\medskip\noindent\textbf{Step 3 -- per-capability requirement} $r_{q,c}{=}p_c\,z_q$ (with $z_q{=}1.649$):
-\begin{center}\small
+\vspace{4pt}\noindent\textbf{Step 3. Per-capability requirement} $r_{q,c}{=}p_c\,z_q$ (with $z_q{=}1.649$):
+\vspace{-2pt}\begin{center}\small
 \begin{tabular}{l r r r r r r }
 \toprule
 $c$ & \texttt{cod} & \texttt{crea} & \texttt{ifo} & \texttt{math} & \texttt{plan} & \texttt{wld} \\
@@ -32,9 +32,8 @@ $p_c$ & 0.09 & 0.53 & 0.09 & 0.09 & 0.09 & 0.09 \\
 $r_{q,c}$ & 0.16 & 0.87 & 0.16 & 0.16 & 0.16 & 0.16 \\
 \bottomrule
 \end{tabular}\end{center}
-
-\medskip\noindent\textbf{Step 4 -- per-model capacity} $v_{m,c}{=}p_c\,\mathrm{logit}(s_{m,c})$, with $S$ the offline-calibrated skill matrix:
-\begin{center}\scriptsize
+\noindent\textbf{Step 4. Per-model capacity} $v_{m,c}{=}p_c\,\mathrm{logit}(s_{m,c})$, with $S$ the offline-calibrated skill matrix:
+\vspace{-2pt}\begin{center}\scriptsize
 \begin{tabular}{l r r r r r r }
 \toprule
 $c$ & \texttt{cod} & \texttt{crea} & \texttt{ifo} & \texttt{math} & \texttt{plan} & \texttt{wld} \\
@@ -47,9 +46,8 @@ $s_{kimi,c}$ & 0.904 & 0.752 & 0.870 & 0.944 & 0.642 & 0.344 \\
 $v_{kimi,c}$ & 0.21 & 0.58 & 0.18 & 0.27 & 0.06 & -0.06 \\
 \bottomrule
 \end{tabular}\end{center}
-
-\medskip\noindent\textbf{Step 5 -- asymmetric residuals.}\\$u_{m,c}{=}\max(0, r_{q,c}{-}v_{m,c})$ (under-capacity, model too weak), $o_{m,c}{=}\max(0, v_{m,c}{-}r_{q,c})$ (over-capacity, overkill):
-\begin{center}\scriptsize
+\noindent\textbf{Step 5. Asymmetric residuals.} $u_{m,c}{=}\max(0, r_{q,c}{-}v_{m,c})$ (under-capacity, model too weak), $o_{m,c}{=}\max(0, v_{m,c}{-}r_{q,c})$ (over-capacity, overkill):
+\vspace{-2pt}\begin{center}\scriptsize
 \begin{tabular}{l r r r r r r }
 \toprule
 $c$ & \texttt{cod} & \texttt{crea} & \texttt{ifo} & \texttt{math} & \texttt{plan} & \texttt{wld} \\
@@ -62,20 +60,18 @@ $u_{kimi,c}$ & 0.00 & 0.29 & 0.00 & 0.00 & 0.10 & 0.22 \\
 $o_{kimi,c}$ & 0.06 & 0.00 & 0.02 & 0.11 & 0.00 & 0.00 \\
 \bottomrule
 \end{tabular}\end{center}
-
-\medskip\noindent\textbf{Step 6 -- distance, cost penalty, total score.} $D_m{=}\sqrt{\sum_c(u_{m,c}^{2}+\lambda\,o_{m,c}^{2})}$ (with $\lambda{=}0.35$) and $J_m{=}D_m{+}\beta\,a_m$ (with $\beta{=}0.63$):
-\begin{center}\scriptsize\setlength{\tabcolsep}{4pt}
-\begin{tabular}{l r r r r c}
+\noindent\textbf{Step 6. Distance, cost penalty, total score.} $D_m{=}\sqrt{\sum_c(u_{m,c}^{2}+\lambda\,o_{m,c}^{2})}$ (with $\lambda{=}0.35$) and $J_m{=}D_m{+}\beta\,c_m$ (with $\beta{=}0.63$). The routing-math cost scalar $c_m$ comes from §\ref{sec:pool}; the realised per-call USD cost $a_m^{\$}$ is shown alongside for reference:
+\vspace{-2pt}\begin{center}\scriptsize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l r r r r r c}
 \toprule
-\textbf{model} & $a_m$ & $D_m$ & $\beta a_m$ & $J_m$ & \textbf{sel.} \\
+\textbf{model} & $c_m$ & $a_m^{\$}$ & $D_m$ & $\beta c_m$ & $J_m$ & \textbf{sel.} \\
 \midrule
-\mdlogo{qwen}\,\texttt{qwen} & 0.10 & 0.908 & 0.063 & 0.971 &  \\
-\mdlogo{ds4}\,\texttt{ds4} & 0.40 & 0.562 & 0.252 & 0.814 &  \\
-\mdlogo{kimi}\,\texttt{kimi} & 0.60 & 0.380 & 0.378 & 0.758 & $\checkmark$ \\
+\mdlogo{qwen}\,\texttt{qwen} & 0.10 & \$0.001386 & 0.908 & 0.063 & 0.971 &  \\
+\mdlogo{ds4}\,\texttt{ds4}   & 0.40 & \$0.002895 & 0.562 & 0.252 & 0.814 &  \\
+\mdlogo{kimi}\,\texttt{kimi} & 0.60 & \$0.030703 & 0.380 & 0.378 & 0.758 & $\checkmark$ \\
 \bottomrule
 \end{tabular}\end{center}
-
-\medskip\noindent\textbf{Step 7 -- decision.} $m^{\star}=\arg\min_m J_m = \mdlogo{kimi}\,\texttt{kimi2.6}$ ($J_{\text{qwen}}{=}0.971$, $J_{\text{ds4}}{=}0.814$, $J_{\text{kimi}}{=}0.758$). The dominant capability is \texttt{creative\_synthesis} at $p{=}0.53$, and $\tau_q{=}0.80$ inflates the per-capability requirement; the qwen capacity on that dimension falls short, so its under-capacity penalty exceeds the cost gap to kimi.
+\vspace{4pt}\noindent\textbf{Step 7. Decision.} $m^{\star}=\arg\min_m J_m = \mdlogo{kimi}\,\texttt{kimi2.6}$ ($J_{\text{qwen}}{=}0.971$, $J_{\text{ds4}}{=}0.814$, $J_{\text{kimi}}{=}0.758$). The dominant capability is \texttt{creative\_synthesis} at $p{=}0.53$, and $\tau_q{=}0.80$ inflates the per-capability requirement; the qwen capacity on that dimension falls short, so its under-capacity penalty exceeds the cost gap to kimi.
 
 
 % --- Mini table 3 cherry-picked queries ---

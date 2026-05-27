@@ -13,7 +13,7 @@ model:
 mom_registry:
   models/modernbert-capability-classifier: "massaindustries/modernbert-capability-classifier"
 
-# MyModel provider (for API key resolution in brick handler)
+# Brick provider (for API key resolution in brick handler)
 providers:
   regoloai:
     type: openai_compatible

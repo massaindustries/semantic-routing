@@ -13,7 +13,7 @@ model:
 mom_registry:
   models/modernbert-capability-classifier: "massaindustries/modernbert-capability-classifier"
 
-# MyModel provider (for API key resolution in brick handler)
+# Brick provider (for API key resolution in brick handler)
 providers:
   regoloai:
     type: openai_compatible
@@ -151,12 +151,26 @@ skill_router:
     auto_spawn: false
 
   math:
+    # Production-locked knobs from W&B Bayesian sweep (paper Appendix A.1).
+    # Source: external_comparison/runs/r_sweep_post_fix_2026-05-26/oof_warm_v12_14knob.md
     prior_strength: 8
     tau:
       easy: 0.55
       medium: 0.72
       hard: 0.88
-    over_penalty_lambda: 0.05
+    complexity_mu: 0.345170
+    complexity_bias: 0.822235
+    cost_penalty_beta: 0.230778
+    over_penalty_lambda: 0.045207
+    preference_power: 2.920351
+    max_mu_multiplier: 13.034935
+    max_bias_shift: 5.294173
+    max_cost_relief: 6559.073066
+    max_over_relief: 49.547940
+    min_mu_multiplier: 0.081493
+    min_bias_shift: -1.349259
+    min_cost_boost: 8.834043
+    min_over_boost: 1002.068256
     tie_epsilon: 0.03
     clip_min: 0.02
     clip_max: 0.98

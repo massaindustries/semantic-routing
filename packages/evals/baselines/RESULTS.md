@@ -100,7 +100,7 @@
 | Macchina baselines | Workstation locale CPU (RouteLLM, FrugalGPT, Cascade Routing) |
 | Macchina Brick | Cluster Seeweb `qwen-bench` (4×L40S, ma Brick gira su CPU del cluster: binary non supporta GPU) |
 | Fake backend Brick | HTTP server Python `localhost:9999` → 401 in <1ms (esclude RTT network OpenRouter dalla latency) |
-| Brick image | `mymodel:brick2-dev` (proprietary) + ModernBERT capability classifier mounted volume |
+| Brick image | `brick:brick2-dev` (proprietary) + ModernBERT capability classifier mounted volume |
 | Repo wrapper | `/root/forkGO/external_comparison/` (`run_routellm.py`, `run_frugalgpt.py`, `run_cascade_routing.py`, `run_brick.py`) |
 | Output HF | [`massaindustries/dataset-A-routing`](https://huggingface.co/datasets/massaindustries/dataset-A-routing) subset `comparison` (5504 × 22 cols) |
 

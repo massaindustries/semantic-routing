@@ -9,14 +9,14 @@ each prompt to Haiku / Sonnet / Opus by complexity, saving subscription quota.
 Claude Code (Windows host)
         │  HTTPS /v1/messages
         ▼
-mymodel container (CPU)  ──► api.anthropic.com
+brick container (CPU)  ──► api.anthropic.com
         │
         │  /classify  (loopback Docker network)
         ▼
 classifier container (NVIDIA GPU, ~3-5s startup)
 ```
 
-The classifier picks easy/medium/hard. mymodel rewrites the `model` field of
+The classifier picks easy/medium/hard. brick rewrites the `model` field of
 each Anthropic Messages request before forwarding. Your subscription bearer
 token never leaves your machine except to reach `api.anthropic.com` directly.
 
@@ -68,7 +68,7 @@ claude
 ## Verify
 
 ```powershell
-mymodel claude status
+brick claude status
 ```
 
 Expected output (approximate):
@@ -76,7 +76,7 @@ Expected output (approximate):
 ```
 Connection
   ANTHROPIC_BASE_URL  http://localhost:18000     ✓ attached
-  mymodel             :18000                     ✓ healthy (uptime 12m)
+  brick             :18000                     ✓ healthy (uptime 12m)
   classifier          http://classifier:8094     ✓ healthy (cuda, last 87ms)
 
 Routing since restart (12m)
@@ -94,7 +94,7 @@ Routing since restart (12m)
 |---|---|
 | Stop      | `docker compose -f deploy/docker-compose/docker-compose.brick-cc.yml down` |
 | Start     | `docker compose -f deploy/docker-compose/docker-compose.brick-cc.yml up -d` |
-| Logs      | `docker compose -f ... logs -f mymodel` (or `classifier`) |
+| Logs      | `docker compose -f ... logs -f brick` (or `classifier`) |
 | Update    | `git pull && docker compose -f ... pull && ... up -d` |
 | Uninstall | `.\uninstall.ps1` |
 
@@ -109,7 +109,7 @@ driver predates CUDA-on-WSL. Update the driver and toggle Settings → General
 Open another PowerShell and watch logs:
 `docker compose -f deploy/docker-compose/docker-compose.brick-cc.yml logs -f`.
 First start takes longer because the classifier downloads ~2 GB of weights.
-Ctrl-C the watcher when you see `Model loaded ... on cuda` and `MyModel proxy
+Ctrl-C the watcher when you see `Model loaded ... on cuda` and `Brick proxy
 server starting on port 8000`.
 
 **Port 18000 already in use.**
@@ -118,11 +118,11 @@ server starting on port 8000`.
 **`claude` says "Extra usage is required for 1M context".**
 Brick strips the `context-1m-*` beta header by default: you should not see
 this. If you do, your subscription request used a different code path.
-Restart `claude`. If persistent, file an issue with `mymodel claude status`
-output and the last 50 lines of `mymodel` logs.
+Restart `claude`. If persistent, file an issue with `brick claude status`
+output and the last 50 lines of `brick` logs.
 
 **Classifier always returns "medium".**
-Look for `Fallback to medium: HTTP request failed: ... timeout` in mymodel
+Look for `Fallback to medium: HTTP request failed: ... timeout` in brick
 logs: means the classifier is too slow (CPU fallback?) or unreachable.
 Confirm with `docker compose ps` that `classifier` shows `Up (healthy)` and
 that GPU is being used: `docker compose logs classifier | grep "on cuda"`.
@@ -132,7 +132,7 @@ that GPU is being used: `docker compose logs classifier | grep "on cuda"`.
 - The bearer token in `.env` only protects the local classifier endpoint
   inside the Docker network. It is not your Anthropic credential.
 - Your Anthropic OAuth bearer is forwarded verbatim to `api.anthropic.com`
-  by mymodel; nothing logs or persists it.
+  by brick; nothing logs or persists it.
 - Prompts you send to Claude Code transit the local classifier on their way
   out. Classifier inference happens entirely on your machine; no prompt text
   ever leaves the box for routing purposes.

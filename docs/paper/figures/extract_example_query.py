@@ -36,7 +36,9 @@ SKILL_MATRIX = {
     "ds4":  [0.820939, 0.657845, 0.863112, 0.934963, 0.62055,  0.488518],
     "kimi": [0.904272, 0.751595, 0.87018,  0.943892, 0.641863, 0.344074],
 }
-COST_VECTOR = {"qwen": 0.10, "ds4": 0.40, "kimi": 0.60}
+# Mean cost per call (USD), full Dataset A, OpenRouter prices fetched 2026-05-26.
+# Source: scientificv1/data/reports/cost_audit/hf_verbose_means.md.
+COST_VECTOR = {"qwen": 0.001386, "ds4": 0.002895, "kimi": 0.030703}
 KNOB_DEFAULTS = {"mu0": 1.07, "b0": 0.15, "beta0": 0.63, "lambda0": 0.35,
                  "alpha": 1.56}
 CLIP_MIN, CLIP_MAX = 0.02, 0.98  # config.yaml lines 173-174

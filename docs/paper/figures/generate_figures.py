@@ -86,34 +86,40 @@ def fig_cost_pareto():
     Brick    = CIRCLES, one distinct color per profile (max=star).
     All twelve points appear individually in the legend.
     """
+    # Costs are USD per call, full Dataset A mean.
+    # Source: scientificv1/data/reports/cost_audit/router_costs.md (OpenRouter 2026-05-26).
+    # Accuracy figures preserved from paper (HF dataset re-graded post publication;
+    # paper accuracy remains authoritative per author).
     singles = [
-        ("always-qwen",  0.100, 63.17, "#EC407A", "qwen"),
-        ("always-ds4",   0.400, 73.69, "#4FC3F7", "ds4"),
-        ("always-kimi",  0.600, 75.02, "#0D47A1", "kimi"),
+        ("always-qwen",  0.001386, 63.17, "#EC407A", "qwen"),
+        ("always-ds4",   0.002895, 73.69, "#4FC3F7", "ds4"),
+        ("always-kimi",  0.030703, 75.02, "#0D47A1", "kimi"),
     ]
     externals = [
-        ("RouteLLM binary",     0.999, 21.31, "#FDD835"),
-        ("RouteLLM tournament", 0.999, 21.31, "#FB8C00"),
-        ("FrugalGPT cascade",   0.070, 63.17, "#E53935"),
-        ("Cascade Routing",     0.526, 28.96, "#B71C1C"),
+        # RouteLLM binary/tournament dispatch ~100% to kimi → cost = always-kimi.
+        # Tiny x-jitter so points remain visible.
+        ("RouteLLM binary",     0.030700, 75.02, "#FDD835"),
+        ("RouteLLM tournament", 0.030706, 75.02, "#FB8C00"),
+        ("FrugalGPT cascade",   0.004114, 69.42, "#E53935"),  # cumulative incl. rejected stages
+        ("Cascade Routing",     0.006113, 73.40, "#B71C1C"),  # cascade_calls=1 in artifact → no rejected
     ]
-    # Brick profiles: pale green to emerald gradient (max = deep emerald star)
+    # Brick profiles: cost = linear plug-in of dispatch% × per-model mean cost.
     bricks = [
-        ("Brick min ($r{=}{-}1.0$)",     0.100, 63.17, "#C8E6C9", "o"),
-        ("Brick low ($r{=}{-}0.5$)",     0.108, 63.17, "#A5D6A7", "o"),  # tiny x-jitter to separate
-        ("Brick neutral ($r{=}0$)",       0.192, 68.46, "#66BB6A", "o"),
-        ("Brick high ($r{=}{+}0.5$)",    0.359, 74.18, "#2E7D32", "o"),
-        ("Brick max ($r{=}{+}1.0$)",     0.537, 76.98, "#1B5E20", "*"),
+        ("Brick min ($r{=}{-}1.0$)",     0.001386, 63.17, "#C8E6C9", "o"),
+        ("Brick low ($r{=}{-}0.5$)",     0.003557, 71.62, "#A5D6A7", "o"),
+        ("Brick neutral ($r{=}0$)",       0.006513, 74.11, "#66BB6A", "o"),
+        ("Brick high ($r{=}{+}0.5$)",    0.014905, 76.24, "#2E7D32", "o"),
+        ("Brick max ($r{=}{+}1.0$)",     0.022083, 76.98, "#1B5E20", "*"),
     ]
 
-    fig, ax = plt.subplots(figsize=(6.6, 3.3))
+    fig, ax = plt.subplots(figsize=(6.8, 3.6))
     legend_handles = []
     from matplotlib.lines import Line2D
     # --- Singles: scatter with logo overlay above the marker ---
     for name, cost, acc, color, lname in singles:
         ax.scatter(cost, acc, c=color, marker="s", s=80, edgecolors="black",
                    linewidths=0.6, zorder=4)
-        _annotate_logo(ax, cost, acc, lname, scale=1.0, offset=(0, 18))
+        _annotate_logo(ax, cost, acc, lname, scale=0.85, offset=(0, 18))
         legend_handles.append(
             Line2D([0], [0], marker="s", color="w", markerfacecolor=color,
                    markeredgecolor="black", markersize=8, label=name)
@@ -132,7 +138,7 @@ def fig_cost_pareto():
         ax.scatter(cost, acc, c=color, marker=marker, s=size, edgecolors="black",
                    linewidths=0.6, zorder=5)
         if marker == "*":
-            _annotate_logo(ax, cost, acc, "regolo", scale=1.0, offset=(0, 22))
+            _annotate_logo(ax, cost, acc, "regolo", scale=0.85, offset=(0, 20))
         legend_handles.append(
             Line2D([0], [0], marker=marker, color="w", markerfacecolor=color,
                    markeredgecolor="black", markersize=11 if marker == "*" else 8,
@@ -148,14 +154,15 @@ def fig_cost_pareto():
         Line2D([0], [0], color="black", linestyle="--", linewidth=1.0, label=r"oracle ceiling (83.25\%)")
     )
 
-    ax.set_xlabel("Average normalized cost per query")
+    ax.set_xlabel(r"Average cost per query (USD)")
     ax.set_ylabel(r"Response accuracy (\%)")
     ax.set_title(r"Cost vs accuracy on Dataset~A ($N{=}5{,}504$)")
-    ax.set_xlim(-0.04, 1.05)
-    ax.set_ylim(12, 92)
+    ax.set_xlim(0.0008, 0.035)
+    ax.set_ylim(60, 88)
+    ax.set_xscale("log")
     ax.grid(True, linestyle=":", alpha=0.45)
-    ax.legend(handles=legend_handles, loc="lower right", ncol=1,
-              framealpha=0.95, fontsize=6.8, borderaxespad=0.4,
+    ax.legend(handles=legend_handles, loc="upper left", ncol=1,
+              framealpha=0.95, fontsize=6.8, borderaxespad=0.5,
               handletextpad=0.4, labelspacing=0.28)
     fig.tight_layout()
     out = FIG / "cost_pareto.png"
